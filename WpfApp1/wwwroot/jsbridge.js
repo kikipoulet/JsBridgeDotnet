@@ -248,19 +248,10 @@ const WpfBridge = (function() {
         
         if (!eventListeners[key]) {
             eventListeners[key] = new Set();
-            
-            const listenerId = generateMessageId();
-            
-            const message = {
-                type: 'SubscribeEvent',
-                messageId: listenerId,
-                listenerId: listenerId,
-                serviceName: serviceName,
-                methodName: propertyName
-            };
-            
-            sendMessage(message);
         }
+        
+        // Observable properties automatically send propertyChangeFired notifications
+        // No need to subscribe - they work out of the box
     }
 
     function handleErrorResponse(message) {
@@ -291,6 +282,12 @@ const WpfBridge = (function() {
             listenerId: listenerId,
             serviceName: serviceName,
             methodName: eventName
+        };
+        
+        // Add to pending calls to handle the methodResult response
+        pendingCalls[listenerId] = { 
+            resolve: () => { /* Subscription successful, no data needed */ },
+            reject: (error) => console.error(`[WpfBridge] Failed to subscribe to ${eventName}:`, error)
         };
         
         sendMessage(message);
