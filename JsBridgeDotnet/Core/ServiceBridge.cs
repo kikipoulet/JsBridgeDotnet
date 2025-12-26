@@ -96,45 +96,11 @@ namespace JsBridgeDotnet.Core
 
             if (serviceInstance == null)
                 throw new ArgumentNullException(nameof(serviceInstance));
-
-            if (_isNavigationCompleted)
-            {
-                // Navigation terminée : enregistrer immédiatement
-                RegisterServiceInternal(serviceName, serviceInstance);
-            }
-            else
-            {
-                // Navigation en cours : ajouter à la liste d'attente
-                _pendingRegistrations.Add((serviceName, serviceInstance));
-            }
+            
+            RegisterServiceInternal(serviceName, serviceInstance);
         }
 
-        /// <summary>
-        /// Enregistre un service singleton et le rend disponible pour JavaScript
-        /// L'instance fournie sera partagée entre tous les appels JavaScript à ce service
-        /// Si la navigation n'est pas terminée, le service sera enregistré automatiquement après
-        /// </summary>
-        /// <param name="serviceName">Nom unique du service pour l'identifier côté JavaScript</param>
-        /// <param name="serviceInstance">Instance unique du service à exposer (singleton)</param>
-        public void RegisterSingletonService(string serviceName, object serviceInstance)
-        {
-            if (string.IsNullOrWhiteSpace(serviceName))
-                throw new ArgumentException("Service name cannot be empty", nameof(serviceName));
-
-            if (serviceInstance == null)
-                throw new ArgumentNullException(nameof(serviceInstance));
-
-            if (_isNavigationCompleted)
-            {
-                // Navigation terminée : enregistrer immédiatement
-                RegisterServiceInternal(serviceName, serviceInstance);
-            }
-            else
-            {
-                // Navigation en cours : ajouter à la liste d'attente
-                _pendingRegistrations.Add((serviceName, serviceInstance));
-            }
-        }
+ 
 
         /// <summary>
         /// Enregistre réellement le service (appelé soit immédiatement, soit après NavigationCompleted)

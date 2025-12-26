@@ -27,27 +27,6 @@ namespace JsBridgeDotnet.Extensions
             return new ServiceBridge(webView);
         }
 
-        /// <summary>
-        /// Crée un ServiceBridge et enregistre automatiquement les services spécifiés
-        /// </summary>
-        /// <param name="webView">Instance WebView2</param>
-        /// <param name="services">Dictionnaire de nom -> instance de service</param>
-        /// <returns>Instance de ServiceBridge configurée</returns>
-        public static async Task<ServiceBridge> CreateServiceBridgeAsync(
-            this WebView2 webView,
-            params (string serviceName, object serviceInstance)[] services)
-        {
-            var bridge = await CreateServiceBridgeAsync(webView);
-
-            foreach (var (serviceName, serviceInstance) in services)
-            {
-                bridge.RegisterSingletonService(serviceName, serviceInstance);
-            }
-
-            return bridge;
-        }
-        
-        
         
         /// <summary>
         /// Navigue vers une page HTML locale dans le dossier de l'application
