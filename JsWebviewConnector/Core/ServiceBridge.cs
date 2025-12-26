@@ -145,17 +145,35 @@ namespace JsWebviewConnector.Core
                 })
                 .ToArray();
 
-            // Récupérer les événements publics
+            // Récupérer les événements publics (sauf PropertyChanged)
             var events = serviceType.GetEvents(BindingFlags.Public | BindingFlags.Instance)
-                .Where(e => e.DeclaringType != typeof(object))
+                .Where(e => e.DeclaringType != typeof(object) && e.Name != "PropertyChanged")
                 .Select(e => e.Name)
                 .ToArray();
+
+            // Récupérer les propriétés publiques
+            var properties = serviceType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.DeclaringType != typeof(object) &&
+                           p.GetIndexParameters().Length == 0 &&
+                           p.CanRead)
+                .Select(p => new PropertyMetadata
+                {
+                    Name = p.Name,
+                    Type = GetSimpleTypeName(p.PropertyType),
+                    Value = TryGetPropertyValue(serviceInstance: null, p)
+                })
+                .ToArray();
+
+            // Vérifier si le service implémente INotifyPropertyChanged
+            var supportsPropertyChanged = typeof(System.ComponentModel.INotifyPropertyChanged).IsAssignableFrom(serviceType);
 
             return new ServiceRegistration
             {
                 ServiceName = serviceName,
                 Methods = methods,
-                Events = events
+                Events = events,
+                Properties = properties,
+                SupportsPropertyChanged = supportsPropertyChanged
             };
         }
 
@@ -179,7 +197,7 @@ namespace JsWebviewConnector.Core
         private void SubscribeToServiceEvents(string serviceName, Type serviceType, object serviceInstance)
         {
             var events = serviceType.GetEvents(BindingFlags.Public | BindingFlags.Instance)
-                .Where(e => e.DeclaringType != typeof(object));
+                .Where(e => e.DeclaringType != typeof(object) && e.Name != "PropertyChanged");
 
             foreach (var eventInfo in events)
             {
@@ -203,6 +221,106 @@ namespace JsWebviewConnector.Core
                     subscription.Handlers.Add(eventHandler);
                 }
             }
+
+            // S'abonner à PropertyChanged si le service implémente INotifyPropertyChanged
+            if (typeof(System.ComponentModel.INotifyPropertyChanged).IsAssignableFrom(serviceType))
+            {
+                SubscribeToPropertyChanged(serviceName, serviceInstance);
+            }
+        }
+
+        /// <summary>
+        /// S'abonne à l'événement PropertyChanged
+        /// </summary>
+        private void SubscribeToPropertyChanged(string serviceName, object serviceInstance)
+        {
+            var propertyChangedEvent = typeof(System.ComponentModel.INotifyPropertyChanged).GetEvent("PropertyChanged");
+            var key = (serviceName, "PropertyChanged");
+
+            if (!_eventSubscriptions.ContainsKey(key))
+            {
+                var subscription = new EventSubscription
+                {
+                    EventName = "PropertyChanged",
+                    ServiceInstance = serviceInstance,
+                    EventInfo = propertyChangedEvent,
+                    Handlers = new List<Delegate>()
+                };
+
+                _eventSubscriptions[key] = subscription;
+
+                // Créer un handler spécial pour PropertyChanged
+                var handler = new System.ComponentModel.PropertyChangedEventHandler((sender, args) =>
+                {
+                    OnPropertyChangedFired(serviceName, args.PropertyName, serviceInstance);
+                });
+
+                propertyChangedEvent.AddEventHandler(serviceInstance, handler);
+                subscription.Handlers.Add(handler);
+            }
+        }
+
+        /// <summary>
+        /// Appelé quand une propriété change
+        /// </summary>
+        private void OnPropertyChangedFired(string serviceName, string propertyName, object serviceInstance)
+        {
+            try
+            {
+                var propertyInfo = serviceInstance.GetType().GetProperty(propertyName);
+                if (propertyInfo == null)
+                    return;
+
+                var value = TryGetPropertyValue(serviceInstance, propertyInfo);
+
+                var message = new BridgeMessage
+                {
+                    Type = MessageType.PropertyChangeFired,
+                    ServiceName = serviceName,
+                    MethodName = propertyName,
+                    Result = new
+                    {
+                        PropertyName = propertyName,
+                        Value = value
+                    },
+                    Success = true
+                };
+
+                SendMessageToJavaScript(message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending property change {propertyName} from service {serviceName}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Tente de récupérer la valeur d'une propriété de manière sécurisée
+        /// </summary>
+        private object TryGetPropertyValue(object serviceInstance, PropertyInfo propertyInfo)
+        {
+            try
+            {
+                if (serviceInstance != null)
+                {
+                    return propertyInfo.GetValue(serviceInstance);
+                }
+                return GetDefaultValue(propertyInfo.PropertyType);
+            }
+            catch
+            {
+                return GetDefaultValue(propertyInfo.PropertyType);
+            }
+        }
+
+        /// <summary>
+        /// Retourne la valeur par défaut d'un type
+        /// </summary>
+        private object GetDefaultValue(Type type)
+        {
+            if (type.IsValueType)
+                return Activator.CreateInstance(type);
+            return null;
         }
 
         /// <summary>

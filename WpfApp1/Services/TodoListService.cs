@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace WpfApp1.Services
 {
@@ -25,8 +26,10 @@ namespace WpfApp1.Services
     /// <summary>
     /// Service simplifié pour gérer une liste de tâches
     /// </summary>
-    public class TodoListService
+    public partial class TodoListService : ObservableObject
     {
+        [ObservableProperty] private int _itemsCount = 0;
+        
         private readonly List<TodoItem> _todos;
         private int _nextId;
 
@@ -64,6 +67,9 @@ namespace WpfApp1.Services
             _todos.Add(todo);
             _nextId++;
 
+            // Mettre à jour la propriété observable
+            ItemsCount = _todos.Count;
+
             // Déclencher l'événement avec toute la liste mise à jour
             OnTodoListChanged();
         }
@@ -78,6 +84,9 @@ namespace WpfApp1.Services
                 throw new ArgumentException($"Todo with id '{id}' not found");
 
             _todos.Remove(todo);
+
+            // Mettre à jour la propriété observable
+            ItemsCount = _todos.Count;
 
             // Déclencher l'événement avec toute la liste mise à jour
             OnTodoListChanged();

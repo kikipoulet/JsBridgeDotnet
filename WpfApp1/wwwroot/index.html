@@ -90,10 +90,44 @@
             color: #666;
             margin: 20px 0;
         }
+        #itemscount-display {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 1000;
+        }
+        #itemscount-display .label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        #itemscount-display .value {
+            font-size: 32px;
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
+    <div id="itemscount-display">
+        <div class="label">Items Count</div>
+        <div class="value" id="itemscount-value">-</div>
+    </div>
+    
     <h1>📝 TodoList</h1>
+    
+    <div style="text-align: center; margin-bottom: 20px;">
+        <a href="test-observable-property.html" style="color: #007bff; text-decoration: underline;">
+            🧪 Test ObservableProperty 
+        </a>
+    </div>
     
     <div id="error"></div>
     <div id="loading">Chargement du service...</div>
@@ -129,6 +163,12 @@
                 // Masquer le message de chargement
                 document.getElementById('loading').style.display = 'none';
                 
+                // S'abonner aux changements de la propriété ItemsCount
+                todoService.ItemsCount.subscribe((newValue, oldValue) => {
+                    console.log(`[App] ItemsCount changed: ${oldValue} → ${newValue}`);
+                    updateItemsCountDisplay(newValue);
+                });
+                
                 // S'abonner aux changements de la liste
                 todoService.OnTodoListChanged.subscribe((data) => {
                     console.log('[App] TodoListChanged event received:', data);
@@ -136,6 +176,10 @@
                         renderTodos(data.todos);
                     }
                 });
+                
+                // Charger la valeur initiale de ItemsCount
+                const initialCount = todoService.ItemsCount();
+                updateItemsCountDisplay(initialCount);
                 
                 // Charger les todos initiaux
                 const todos = await todoService.GetAll();
@@ -283,6 +327,21 @@
             }
 
             updateStats();
+        }
+
+        /**
+         * Met à jour l'affichage de ItemsCount
+         */
+        function updateItemsCountDisplay(value) {
+            const display = document.getElementById('itemscount-value');
+            if (display) {
+                display.textContent = value;
+                // Animation visuelle pour indiquer le changement
+                display.style.transform = 'scale(1.2)';
+                setTimeout(() => {
+                    display.style.transform = 'scale(1)';
+                }, 150);
+            }
         }
 
         /**

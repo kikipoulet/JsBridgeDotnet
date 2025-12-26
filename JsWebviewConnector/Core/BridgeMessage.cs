@@ -41,7 +41,12 @@ namespace JsWebviewConnector.Core
         /// <summary>
         /// Message d'erreur
         /// </summary>
-        ErrorResponse = 6
+        ErrorResponse = 6,
+
+        /// <summary>
+        /// Changement de propriété INotifyPropertyChanged
+        /// </summary>
+        PropertyChangeFired = 7
     }
 
     /// <summary>
@@ -118,6 +123,16 @@ namespace JsWebviewConnector.Core
     }
 
     /// <summary>
+    /// Métadonnées d'une propriété
+    /// </summary>
+    public class PropertyMetadata
+    {
+        public string Name { get; set; }
+        public string Type { get; set; }
+        public object Value { get; set; }
+    }
+
+    /// <summary>
     /// Métadonnées d'un service
     /// </summary>
     public class ServiceRegistration
@@ -125,5 +140,7 @@ namespace JsWebviewConnector.Core
         public string ServiceName { get; set; }
         public MethodMetadata[] Methods { get; set; }
         public string[] Events { get; set; }
+        public PropertyMetadata[] Properties { get; set; }
+        public bool SupportsPropertyChanged { get; set; }
     }
 }
