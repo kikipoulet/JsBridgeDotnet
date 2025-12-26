@@ -27,7 +27,7 @@ public partial class MainWindow : Window
 
         webView.NavigationCompleted += (sender, e) =>
         {
-            serviceBridge.RegisterService("TodoList", todoListService);
+            serviceBridge.RegisterSingletonService("TodoList", todoListService);
         };
     }
 

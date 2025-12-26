@@ -156,9 +156,9 @@
             try {
                 console.log('[App] Initializing...');
                 
-                // Attendre que le service soit disponible
-                todoService = await useService('TodoList');
-                console.log('[App] TodoList service acquired');
+                // Attendre que le service singleton soit disponible
+                todoService = await useSingletonService('TodoList');
+                console.log('[App] TodoList singleton service acquired');
                 
                 // Masquer le message de chargement
                 document.getElementById('loading').style.display = 'none';

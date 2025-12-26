@@ -41,7 +41,7 @@ namespace JsBridgeDotnet.Extensions
 
             foreach (var (serviceName, serviceInstance) in services)
             {
-                bridge.RegisterService(serviceName, serviceInstance);
+                bridge.RegisterSingletonService(serviceName, serviceInstance);
             }
 
             return bridge;

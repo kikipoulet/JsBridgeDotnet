@@ -82,13 +82,14 @@ namespace JsBridgeDotnet.Core
         }
 
         /// <summary>
-        /// Enregistre un service et le rend disponible pour JavaScript
+        /// Enregistre un service singleton et le rend disponible pour JavaScript
+        /// L'instance fournie sera partagée entre tous les appels JavaScript à ce service
         /// Si la navigation n'est pas terminée, le service sera enregistré automatiquement après
         /// </summary>
         /// <typeparam name="T">Type du service (interface ou classe)</typeparam>
         /// <param name="serviceName">Nom unique du service pour l'identifier côté JavaScript</param>
-        /// <param name="serviceInstance">Instance du service à exposer</param>
-        public void RegisterService<T>(string serviceName, T serviceInstance)
+        /// <param name="serviceInstance">Instance unique du service à exposer (singleton)</param>
+        public void RegisterSingletonService<T>(string serviceName, T serviceInstance)
         {
             if (string.IsNullOrWhiteSpace(serviceName))
                 throw new ArgumentException("Service name cannot be empty", nameof(serviceName));
@@ -109,12 +110,13 @@ namespace JsBridgeDotnet.Core
         }
 
         /// <summary>
-        /// Enregistre un service et le rend disponible pour JavaScript
+        /// Enregistre un service singleton et le rend disponible pour JavaScript
+        /// L'instance fournie sera partagée entre tous les appels JavaScript à ce service
         /// Si la navigation n'est pas terminée, le service sera enregistré automatiquement après
         /// </summary>
         /// <param name="serviceName">Nom unique du service pour l'identifier côté JavaScript</param>
-        /// <param name="serviceInstance">Instance du service à exposer</param>
-        public void RegisterService(string serviceName, object serviceInstance)
+        /// <param name="serviceInstance">Instance unique du service à exposer (singleton)</param>
+        public void RegisterSingletonService(string serviceName, object serviceInstance)
         {
             if (string.IsNullOrWhiteSpace(serviceName))
                 throw new ArgumentException("Service name cannot be empty", nameof(serviceName));
