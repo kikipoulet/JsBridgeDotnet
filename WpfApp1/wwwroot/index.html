@@ -85,12 +85,18 @@
             margin: 10px 0;
             display: none;
         }
+        #loading {
+            text-align: center;
+            color: #666;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
     <h1>📝 TodoList</h1>
     
     <div id="error"></div>
+    <div id="loading">Chargement du service...</div>
 
     <div class="input-group">
         <input type="text" id="newTodo" placeholder="Nouvelle tâche..." onkeypress="handleKeyPress(event)">
@@ -102,229 +108,59 @@
 
     <div class="stats" id="stats"></div>
 
+    <script src="jsbridge.js"></script>
     <script>
         // ============================================
-        // C# Bridge Client-Side Implementation
+        // Variables globales
         // ============================================
-        
-        const TodoListBridge = (function() {
-            let messageIdCounter = 0;
-            const pendingCalls = {};
-            const eventListeners = {};
-            
-            // Generate unique message IDs
-            function generateMessageId() {
-                messageIdCounter++;
-                return 'msg_' + messageIdCounter + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            }
-            
-            // Send message to C#
-            function sendMessage(message) {
-                try {
-                    console.log('Sending message to C#:', message);
-                    window.chrome.webview.postMessage(JSON.stringify(message));
-                } catch (error) {
-                    console.error('Error sending message to C#:', error);
-                }
-            }
-            
-            // Subscribe to messages from C#
-            window.chrome.webview.addEventListener('message', function(event) {
-                try {
-                    const message = JSON.parse(event.data);
-                    console.log('=== Received message from C# ===');
-                    console.log('Message type:', message.type);
-                    console.log('Full message:', message);
-                    
-                    // Handle different message types
-                    if (message.type === 'registerService' || message.type === 'RegisterService') {
-                        console.log('Service registered:', message.result);
-                        console.log('Service name:', message.result?.serviceName);
-                        // Service is ready
-                        if (message.result?.serviceName === 'TodoList') {
-                            notifyBridgeReady();
-                        }
-                    }
-                    else if (message.type === 'methodResult') {
-                        // Handle method call result
-                        const callback = pendingCalls[message.messageId];
-                        console.log('[MethodResult] Looking for callback with messageId:', message.messageId);
-                        console.log('[MethodResult] Pending calls keys:', Object.keys(pendingCalls));
-                        console.log('[MethodResult] Callback found:', !!callback);
-                        
-                        if (callback) {
-                            if (message.success) {
-                                callback(null, message.result);
-                            } else {
-                                callback(message.error || 'Unknown error', null);
-                            }
-                            delete pendingCalls[message.messageId];
-                        } else {
-                            console.error('[MethodResult] No callback found for messageId:', message.messageId);
-                        }
-                    }
-                    else if (message.type === 'eventFired') {
-                        // Handle event from C#
-                        const eventName = message.methodName;
-                        console.log('[eventFired] Event name:', eventName);
-                        console.log('[eventFired] Available listeners:', Object.keys(eventListeners));
-                        console.log('[eventFired] Has listener for this event:', !!eventListeners[eventName]);
-                        console.log('[eventFired] Number of listeners:', eventListeners[eventName]?.length || 0);
-                        
-                        const listeners = eventListeners[eventName];
-                        if (listeners) {
-                            console.log('[eventFired] Calling', listeners.length, 'listener(s)');
-                            listeners.forEach(listener => {
-                                try {
-                                    console.log('[eventFired] Calling listener with result:', message.result);
-                                    listener(message.result);
-                                } catch (error) {
-                                    console.error('Error in event listener:', error);
-                                }
-                            });
-                        } else {
-                            console.error('[eventFired] No listeners found for event:', eventName);
-                        }
-                    }
-                    else if (message.type === 'errorResponse') {
-                        const callback = pendingCalls[message.messageId];
-                        if (callback) {
-                            callback(message.error || 'Unknown error', null);
-                            delete pendingCalls[message.messageId];
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error processing message from C#:', error);
-                }
-            });
-            
-            let bridgeReady = false;
-            let bridgeReadyCallbacks = [];
-            
-            function notifyBridgeReady() {
-                bridgeReady = true;
-                console.log('Bridge is ready!');
-                bridgeReadyCallbacks.forEach(callback => callback());
-                bridgeReadyCallbacks = [];
-            }
-            
-            // Public API
-            return {
-                // Call a method on the service
-                callMethod: function(methodName, parameters, callback) {
-                    const messageId = generateMessageId();
-                    console.log('[callMethod] Calling', methodName, 'with messageId:', messageId);
-                    
-                    if (callback) {
-                        pendingCalls[messageId] = callback;
-                        console.log('[callMethod] Stored callback. Total pending calls:', Object.keys(pendingCalls).length);
-                    }
-                    
-                    const message = {
-                        type: 'CallMethod',
-                        messageId: messageId,
-                        serviceName: 'TodoList',
-                        methodName: methodName,
-                        parameters: parameters || []
-                    };
-                    
-                    sendMessage(message);
-                },
-                
-                // Subscribe to an event
-                subscribe: function(eventName, callback) {
-                    console.log('[subscribe] Subscribing to event:', eventName);
-                    if (!eventListeners[eventName]) {
-                        eventListeners[eventName] = [];
-                        console.log('[subscribe] Created new listener array for:', eventName);
-                    }
-                    
-                    const listenerId = 'listener_' + Date.now();
-                    eventListeners[eventName].push(callback);
-                    console.log('[subscribe] Added callback. Total listeners for', eventName, ':', eventListeners[eventName].length);
-                    console.log('[subscribe] Current events with listeners:', Object.keys(eventListeners));
-                    
-                    // Tell C# we want to subscribe to this event
-                    const message = {
-                        type: 'SubscribeEvent',
-                        listenerId: listenerId,
-                        serviceName: 'TodoList',
-                        methodName: eventName
-                    };
-                    
-                    console.log('[subscribe] Sending subscribe message to C#:', message);
-                    sendMessage(message);
-                    
-                    return listenerId;
-                },
-                
-                // Unsubscribe from an event
-                unsubscribe: function(listenerId) {
-                    // Find and remove the listener
-                    for (const eventName in eventListeners) {
-                        const index = eventListeners[eventName].findIndex(cb => cb.id === listenerId);
-                        if (index !== -1) {
-                            eventListeners[eventName].splice(index, 1);
-                            break;
-                        }
-                    }
-                    
-                    // Tell C# to unsubscribe
-                    const message = {
-                        type: 'UnsubscribeEvent',
-                        listenerId: listenerId
-                    };
-                    
-                    sendMessage(message);
-                },
-                
-                // Check if bridge is ready
-                isReady: function() {
-                    return bridgeReady;
-                },
-                
-                // Register callback for when bridge is ready
-                onReady: function(callback) {
-                    if (bridgeReady) {
-                        callback();
-                    } else {
-                        bridgeReadyCallbacks.push(callback);
-                    }
-                }
-            };
-        })();
-        
+        let todoService = null;
+
         // ============================================
-        // TodoList Application Logic
+        // Initialisation de l'application
         // ============================================
-        
-        // Wait for the bridge to be ready
-        function checkBridgeReady() {
-            console.log('[checkBridgeReady] Waiting for bridge to be ready...');
-            console.log('[checkBridgeReady] Bridge ready status:', TodoListBridge.isReady());
-            
-            TodoListBridge.onReady(function() {
-                console.log('[checkBridgeReady] onReady callback fired!');
-                console.log('Bridge is ready!');
+        async function initializeApp() {
+            try {
+                console.log('[App] Initializing...');
                 
-                // Load initial todos
-                TodoListBridge.callMethod('GetAll', [], function(error, result) {
-                    console.log('[checkBridgeReady] GetAll result:', result);
-                    if (error) {
-                        showError(error);
-                        return;
+                // Attendre que le service soit disponible
+                todoService = await useService('TodoList');
+                console.log('[App] TodoList service acquired');
+                
+                // Masquer le message de chargement
+                document.getElementById('loading').style.display = 'none';
+                
+                // S'abonner aux changements de la liste
+                todoService.OnTodoListChanged.subscribe((data) => {
+                    console.log('[App] TodoListChanged event received:', data);
+                    if (data && data.todos) {
+                        renderTodos(data.todos);
                     }
-                    renderTodos(result);
                 });
                 
-                // Subscribe to the single TodoListChanged event
-                console.log('[checkBridgeReady] About to call subscribeToEvents()');
-                subscribeToEvents();
-            });
+                // Charger les todos initiaux
+                const todos = await todoService.GetAll();
+                console.log('[App] Initial todos loaded:', todos);
+                renderTodos(todos);
+                
+                // Mettre à jour les statistiques
+                await updateStats();
+                
+                console.log('[App] Initialization complete');
+            } catch (error) {
+                console.error('[App] Initialization error:', error);
+                showError('Erreur lors de l\'initialisation: ' + error.message);
+                document.getElementById('loading').style.display = 'none';
+            }
         }
 
-        // Add a new todo
-        function addTodo() {
+        // ============================================
+        // Opérations sur les todos
+        // ============================================
+        
+        /**
+         * Ajoute une nouvelle tâche
+         */
+        async function addTodo() {
             const input = document.getElementById('newTodo');
             const text = input.value.trim();
             
@@ -333,49 +169,41 @@
                 return;
             }
 
-            TodoListBridge.callMethod('Add', [text], function(error) {
-                if (error) {
-                    showError(error);
-                    return;
-                }
-                
-                console.log('Todo ajouté avec succès');
+            try {
+                await todoService.Add(text);
+                console.log('[App] Todo added successfully');
                 input.value = '';
                 hideError();
                 // L'interface sera mise à jour par l'événement TodoListChanged
-            });
-        }
-
-        // Toggle todo completion
-        function toggleTodo(id, currentStatus) {
-            // Pour l'instant, on ne supporte que Add et Remove
-            console.log('Toggle non implémenté');
-        }
-
-        // Update todo text
-        function updateTodo(id) {
-            // Pour l'instant, on ne supporte que Add et Remove
-            console.log('Update non implémenté');
-        }
-
-        // Delete a todo
-        function deleteTodo(id) {
-            if (confirm('Supprimer cette tâche ?')) {
-                TodoListBridge.callMethod('Remove', [id], function(error) {
-                    if (error) {
-                        showError(error);
-                        return;
-                    }
-                    console.log('Todo supprimé avec succès');
-                    hideError();
-                    // L'interface sera mise à jour par l'événement TodoListChanged
-                });
+            } catch (error) {
+                console.error('[App] Error adding todo:', error);
+                showError('Erreur lors de l\'ajout: ' + error.message);
             }
         }
 
-        // Clear all todos
-        function clearTodos() {
-            // Supprimer tous les todos un par un
+        /**
+         * Supprime une tâche
+         */
+        async function deleteTodo(id) {
+            if (!confirm('Supprimer cette tâche ?')) {
+                return;
+            }
+
+            try {
+                await todoService.Remove(id);
+                console.log('[App] Todo deleted successfully');
+                hideError();
+                // L'interface sera mise à jour par l'événement TodoListChanged
+            } catch (error) {
+                console.error('[App] Error deleting todo:', error);
+                showError('Erreur lors de la suppression: ' + error.message);
+            }
+        }
+
+        /**
+         * Supprime toutes les tâches
+         */
+        async function clearTodos() {
             const list = document.getElementById('todoList');
             const todos = list.querySelectorAll('li');
             
@@ -383,105 +211,137 @@
                 return;
             }
 
-            if (confirm(`Supprimer toutes les tâches (${todos.length}) ?`)) {
+            if (!confirm(`Supprimer toutes les tâches (${todos.length}) ?`)) {
+                return;
+            }
+
+            try {
                 // Récupérer tous les IDs et les supprimer
                 const ids = Array.from(todos).map(li => li.id.replace('todo-', ''));
-                ids.forEach(id => {
-                    TodoListBridge.callMethod('Remove', [id], function(error) {
-                        if (error) {
-                            console.error('Erreur lors de la suppression:', error);
-                        }
-                    });
-                });
+                
+                // Supprimer tous les todos
+                for (const id of ids) {
+                    await todoService.Remove(id);
+                }
+                
+                console.log('[App] All todos deleted successfully');
+                hideError();
+            } catch (error) {
+                console.error('[App] Error clearing todos:', error);
+                showError('Erreur lors de la suppression: ' + error.message);
             }
         }
 
-        // Render todos
+        /**
+         * Bascule l'état d'une tâche (à implémenter côté C#)
+         */
+        function toggleTodo(id, currentStatus) {
+            console.log('[App] Toggle not implemented yet');
+            // Pourrait être implémenté avec une méthode Toggle() côté C#
+        }
+
+        /**
+         * Met à jour le texte d'une tâche (à implémenter côté C#)
+         */
+        function updateTodo(id) {
+            console.log('[App] Update not implemented yet');
+            // Pourrait être implémenté avec une méthode Update() côté C#
+        }
+
+        // ============================================
+        // Fonctions d'affichage
+        // ============================================
+        
+        /**
+         * Affiche la liste des todos
+         */
         function renderTodos(todos) {
-            console.log('[renderTodos] Rendering todos:', todos);
+            console.log('[App] Rendering todos:', todos);
             const list = document.getElementById('todoList');
             list.innerHTML = '';
 
             if (Array.isArray(todos)) {
                 todos.forEach(todo => {
-                const li = document.createElement('li');
-                li.id = `todo-${todo.id}`;
-                li.className = todo.isCompleted ? 'completed' : '';
-                
-                li.innerHTML = `
-                    <input type="checkbox" ${todo.isCompleted ? 'checked' : ''} onchange="toggleTodo('${todo.id}', ${todo.isCompleted})">
-                    <span class="todo-id">#${todo.id}</span>
-                    <span class="todo-text">${escapeHtml(todo.text)}</span>
-                    <div class="actions">
-                        <button onclick="updateTodo('${todo.id}')">✏️</button>
-                        <button class="danger" onclick="deleteTodo('${todo.id}')">🗑️</button>
-                    </div>
-                `;
-                
+                    const li = document.createElement('li');
+                    li.id = `todo-${todo.id}`;
+                    li.className = todo.isCompleted ? 'completed' : '';
+                    
+                    li.innerHTML = `
+                        <input type="checkbox" ${todo.isCompleted ? 'checked' : ''} onchange="toggleTodo('${todo.id}', ${todo.isCompleted})">
+                        <span class="todo-id">#${todo.id}</span>
+                        <span class="todo-text">${escapeHtml(todo.text)}</span>
+                        <div class="actions">
+                            <button onclick="updateTodo('${todo.id}')">✏️</button>
+                            <button class="danger" onclick="deleteTodo('${todo.id}')">🗑️</button>
+                        </div>
+                    `;
+                    
                     list.appendChild(li);
                 });
             } else {
-                console.error('[renderTodos] Todos is not an array:', typeof todos, todos);
+                console.error('[App] Todos is not an array:', typeof todos, todos);
             }
 
             updateStats();
         }
 
-        // Update statistics
-        function updateStats() {
-            TodoListBridge.callMethod('Count', [], function(error, count) {
-                if (error) return;
+        /**
+         * Met à jour les statistiques
+         */
+        async function updateStats() {
+            try {
+                const count = await todoService.Count();
+                const completedCount = await todoService.GetCompletedCount();
                 
-                TodoListBridge.callMethod('GetCompletedCount', [], function(error, completedCount) {
-                    if (error) return;
-                    
-                    document.getElementById('stats').textContent = 
-                        `${completedCount} / ${count} tâches complétées`;
-                });
-            });
+                document.getElementById('stats').textContent = 
+                    `${completedCount} / ${count} tâches complétées`;
+            } catch (error) {
+                console.error('[App] Error updating stats:', error);
+            }
         }
 
-        // Subscribe to events
-        function subscribeToEvents() {
-            console.log('[subscribeToEvents] Subscribing to TodoListChanged event...');
-            TodoListBridge.subscribe('TodoListChanged', function(args) {
-                console.log('TodoListChanged received:', args);
-                // args contient la propriété 'todos' avec la liste complète
-                if (args && args.todos) {
-                    renderTodos(args.todos);
-                }
-            });
-            console.log('[subscribeToEvents] Subscription completed');
-        }
-
-        // Handle Enter key
+        // ============================================
+        // Utilitaires
+        // ============================================
+        
+        /**
+         * Gère la touche Entrée dans l'input
+         */
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
                 addTodo();
             }
         }
 
-        // Show error message
+        /**
+         * Affiche un message d'erreur
+         */
         function showError(message) {
             const errorDiv = document.getElementById('error');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
         }
 
-        // Hide error message
+        /**
+         * Masque le message d'erreur
+         */
         function hideError() {
             document.getElementById('error').style.display = 'none';
         }
 
-        // Escape HTML
+        /**
+         * Échappe les caractères HTML pour éviter les injections XSS
+         */
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
 
-        // Initialize
-        checkBridgeReady();
+        // ============================================
+        // Démarrage de l'application
+        // ============================================
+        initializeApp();
     </script>
 </body>
 </html>
