@@ -3,404 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TodoList Test</title>
+    <title>Démo ObservableCollection Réactive</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             max-width: 800px;
             margin: 50px auto;
             padding: 20px;
-            background-color: #f5f5f5;
         }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        .input-group {
+        h1 { color: #333; }
+        .controls { margin: 20px 0; }
+        input { padding: 8px; margin-right: 10px; }
+        button { padding: 8px 16px; cursor: pointer; }
+        ul { list-style: none; padding: 0; }
+        li { 
+            padding: 10px; 
+            margin: 5px 0; 
+            background: #f5f5f5;
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            justify-content: space-between;
+            align-items: center;
         }
-        input[type="text"] {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        button {
-            padding: 10px 20px;
-            background-color: #007bff;
+        .remove-btn {
+            background: #ff4444;
             color: white;
             border: none;
-            border-radius: 4px;
-            cursor: pointer;
+            padding: 5px 10px;
+            margin-left: 10px;
         }
-        button:hover {
-            background-color: #0056b3;
-        }
-        button.danger {
-            background-color: #dc3545;
-        }
-        button.danger:hover {
-            background-color: #a71d2a;
-        }
-        ul {
-            list-style: none;
-            padding: 0;
-        }
-        li {
-            background-color: white;
+        .info {
+            background: #e3f2fd;
             padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        li.completed span {
-            text-decoration: line-through;
-            color: #999;
-        }
-        .todo-text {
-            flex: 1;
-        }
-        .todo-id {
-            color: #666;
-            font-size: 0.9em;
-            min-width: 50px;
-        }
-        .actions {
-            display: flex;
-            gap: 5px;
-        }
-        .stats {
-            text-align: center;
-            margin-top: 20px;
-            color: #666;
-        }
-        #error {
-            color: #dc3545;
-            text-align: center;
-            margin: 10px 0;
-            display: none;
-        }
-        #loading {
-            text-align: center;
-            color: #666;
+            border-radius: 5px;
             margin: 20px 0;
-        }
-        #itemscount-display {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            font-size: 18px;
-            font-weight: bold;
-            z-index: 1000;
-        }
-        #itemscount-display .label {
-            font-size: 12px;
-            opacity: 0.9;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        #itemscount-display .value {
-            font-size: 32px;
-            margin: 5px 0;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
-    <div id="itemscount-display">
-        <div class="label">Items Count</div>
-        <div class="value" id="itemscount-value">-</div>
-    </div>
-    
-    <h1>📝 TodoList</h1>
-    
-    <div style="text-align: center; margin-bottom: 20px;">
-        <a href="test-observable-property.html" style="color: #007bff; text-decoration: underline;">
-            🧪 Test ObservableProperty 
+
+    <div style="margin-bottom: 20px;">
+        <a href="timer-demo.html" style="text-decoration: none; color: #0078d4; font-weight: bold;">
+            ⬅️ Voir la démo TimerService
         </a>
     </div>
-    
-    <div id="error"></div>
-    <div id="loading">Chargement du service...</div>
 
-    <div class="input-group">
-        <input type="text" id="newTodo" placeholder="Nouvelle tâche..." onkeypress="handleKeyPress(event)">
+    <div class="controls">
+        <input type="text" id="todoInput" placeholder="Nouvelle tâche...">
         <button onclick="addTodo()">Ajouter</button>
-        <button class="danger" onclick="clearTodos()">Tout effacer</button>
     </div>
-
+    
+    <h2>📋 Liste des tâches</h2>
     <ul id="todoList"></ul>
-
-    <div class="stats" id="stats"></div>
-
-    <script src="jsbridge.js"></script>
+    
+    <script src="dotnetbridge.js"></script>
     <script>
-        // ============================================
-        // Variables globales
-        // ============================================
+        // Variable pour stocker le service
         let todoService = null;
-
-        // ============================================
-        // Initialisation de l'application
-        // ============================================
-        async function initializeApp() {
-            try {
-                console.log('[App] Initializing...');
-                
-                // Attendre que le service singleton soit disponible
-                todoService = await useSingletonService('TodoList');
-                console.log('[App] TodoList singleton service acquired');
-                
-                // Masquer le message de chargement
-                document.getElementById('loading').style.display = 'none';
-                
-                // S'abonner aux changements de la propriété ItemsCount
-                todoService.ItemsCount.subscribe((newValue, oldValue) => {
-                    console.log(`[App] ItemsCount changed: ${oldValue} → ${newValue}`);
-                    updateItemsCountDisplay(newValue);
-                });
-                
-                // S'abonner aux changements de la liste
-                todoService.OnTodoListChanged.subscribe((data) => {
-                    console.log('[App] TodoListChanged event received:', data);
-                    if (data && data.todos) {
-                        renderTodos(data.todos);
-                    }
-                });
-                
-                // Charger la valeur initiale de ItemsCount
-                const initialCount = todoService.ItemsCount();
-                updateItemsCountDisplay(initialCount);
-                
-                // Charger les todos initiaux
-                const todos = await todoService.GetAll();
-                console.log('[App] Initial todos loaded:', todos);
-                renderTodos(todos);
-                
-                // Mettre à jour les statistiques
-                await updateStats();
-                
-                console.log('[App] Initialization complete');
-            } catch (error) {
-                console.error('[App] Initialization error:', error);
-                showError('Erreur lors de l\'initialisation: ' + error.message);
-                document.getElementById('loading').style.display = 'none';
-            }
-        }
-
-        // ============================================
-        // Opérations sur les todos
-        // ============================================
         
-        /**
-         * Ajoute une nouvelle tâche
-         */
+        // Au démarrage, récupérer le service et s'abonner aux changements
+        async function init() {
+            console.log('🚀 Initialisation...');
+            
+            // 1. Récupérer le service TodoList depuis C#
+            todoService = await DotnetBridge.getService('TodoList');
+            console.log('✅ Service TodoList récupéré');
+            
+            // 2. S'abonner à l'événement OnTodosChanged (généré automatiquement par JsBridge)
+            // Cet événement est déclenché quand la collection C# change (Add/Remove)
+            todoService.OnTodosChanged.subscribe((args) => {
+                console.log('📢 Collection changée !', args);
+                renderTodos();
+            }); 
+            
+            // 3. Afficher les todos initiaux
+            renderTodos();
+        }
+        
+        // Ajouter un todo en appelant la méthode C#
         async function addTodo() {
-            const input = document.getElementById('newTodo');
+
+           
+            const input = document.getElementById('todoInput');
             const text = input.value.trim();
             
-            if (!text) {
-                showError('Veuillez entrer une tâche');
-                return;
-            }
-
-            try {
+            if (text) {
+                console.log('➕ Ajout de:', text);
                 await todoService.Add(text);
-                console.log('[App] Todo added successfully');
                 input.value = '';
-                hideError();
-                // L'interface sera mise à jour par l'événement TodoListChanged
-            } catch (error) {
-                console.error('[App] Error adding todo:', error);
-                showError('Erreur lors de l\'ajout: ' + error.message);
+                // Note: pas besoin de rafraîchir l'UI ici !
+                // L'événement OnTodosChanged va le faire automatiquement
             }
         }
-
-        /**
-         * Supprime une tâche
-         */
-        async function deleteTodo(id) {
-            if (!confirm('Supprimer cette tâche ?')) {
-                return;
-            }
-
-            try {
-                await todoService.Remove(id);
-                console.log('[App] Todo deleted successfully');
-                hideError();
-                // L'interface sera mise à jour par l'événement TodoListChanged
-            } catch (error) {
-                console.error('[App] Error deleting todo:', error);
-                showError('Erreur lors de la suppression: ' + error.message);
-            }
+        
+        // Supprimer un todo en appelant la méthode C#
+        async function removeTodo(id) {
+            console.log('🗑️ Suppression de:', id);
+            await todoService.Remove(id);
+            // Note: pas besoin de rafraîchir l'UI ici non plus !
         }
-
-        /**
-         * Supprime toutes les tâches
-         */
-        async function clearTodos() {
+        
+        // Rendre la liste des todos
+        async function renderTodos() {
             const list = document.getElementById('todoList');
-            const todos = list.querySelectorAll('li');
             
-            if (todos.length === 0) {
-                return;
-            }
+            // Récupérer les todos depuis C# via GetTodos()
+            const todos = await todoService.GetTodos();
 
-            if (!confirm(`Supprimer toutes les tâches (${todos.length}) ?`)) {
-                return;
-            }
-
-            try {
-                // Récupérer tous les IDs et les supprimer
-                const ids = Array.from(todos).map(li => li.id.replace('todo-', ''));
-                
-                // Supprimer tous les todos
-                for (const id of ids) {
-                    await todoService.Remove(id);
-                }
-                
-                console.log('[App] All todos deleted successfully');
-                hideError();
-            } catch (error) {
-                console.error('[App] Error clearing todos:', error);
-                showError('Erreur lors de la suppression: ' + error.message);
-            }
+            list.innerHTML = todos.map(todo => `
+                <li>
+                    <span>${todo.text}</span>
+                    <button class="remove-btn" onclick="removeTodo('${todo.id}')">Supprimer</button>
+                </li>
+            `).join('');
+            
+            console.log(`📊 ${todos.length} todos affichés`);
         }
-
-        /**
-         * Bascule l'état d'une tâche (à implémenter côté C#)
-         */
-        function toggleTodo(id, currentStatus) {
-            console.log('[App] Toggle not implemented yet');
-            // Pourrait être implémenté avec une méthode Toggle() côté C#
-        }
-
-        /**
-         * Met à jour le texte d'une tâche (à implémenter côté C#)
-         */
-        function updateTodo(id) {
-            console.log('[App] Update not implemented yet');
-            // Pourrait être implémenté avec une méthode Update() côté C#
-        }
-
-        // ============================================
-        // Fonctions d'affichage
-        // ============================================
         
-        /**
-         * Affiche la liste des todos
-         */
-        function renderTodos(todos) {
-            console.log('[App] Rendering todos:', todos);
-            const list = document.getElementById('todoList');
-            list.innerHTML = '';
-
-            if (Array.isArray(todos)) {
-                todos.forEach(todo => {
-                    const li = document.createElement('li');
-                    li.id = `todo-${todo.id}`;
-                    li.className = todo.isCompleted ? 'completed' : '';
-                    
-                    li.innerHTML = `
-                        <input type="checkbox" ${todo.isCompleted ? 'checked' : ''} onchange="toggleTodo('${todo.id}', ${todo.isCompleted})">
-                        <span class="todo-id">#${todo.id}</span>
-                        <span class="todo-text">${escapeHtml(todo.text)}</span>
-                        <div class="actions">
-                            <button onclick="updateTodo('${todo.id}')">✏️</button>
-                            <button class="danger" onclick="deleteTodo('${todo.id}')">🗑️</button>
-                        </div>
-                    `;
-                    
-                    list.appendChild(li);
-                });
-            } else {
-                console.error('[App] Todos is not an array:', typeof todos, todos);
-            }
-
-            updateStats();
-        }
-
-        /**
-         * Met à jour l'affichage de ItemsCount
-         */
-        function updateItemsCountDisplay(value) {
-            const display = document.getElementById('itemscount-value');
-            if (display) {
-                display.textContent = value;
-                // Animation visuelle pour indiquer le changement
-                display.style.transform = 'scale(1.2)';
-                setTimeout(() => {
-                    display.style.transform = 'scale(1)';
-                }, 150);
-            }
-        }
-
-        /**
-         * Met à jour les statistiques
-         */
-        async function updateStats() {
-            try {
-                const count = await todoService.Count();
-                const completedCount = await todoService.GetCompletedCount();
-                
-                document.getElementById('stats').textContent = 
-                    `${completedCount} / ${count} tâches complétées`;
-            } catch (error) {
-                console.error('[App] Error updating stats:', error);
-            }
-        }
-
-        // ============================================
-        // Utilitaires
-        // ============================================
-        
-        /**
-         * Gère la touche Entrée dans l'input
-         */
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                addTodo();
-            }
-        }
-
-        /**
-         * Affiche un message d'erreur
-         */
-        function showError(message) {
-            const errorDiv = document.getElementById('error');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-        }
-
-        /**
-         * Masque le message d'erreur
-         */
-        function hideError() {
-            document.getElementById('error').style.display = 'none';
-        }
-
-        /**
-         * Échappe les caractères HTML pour éviter les injections XSS
-         */
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // ============================================
-        // Démarrage de l'application
-        // ============================================
-        initializeApp();
+        // Démarrer l'application
+        init();
     </script>
 </body>
 </html>

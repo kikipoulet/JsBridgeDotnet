@@ -51,7 +51,17 @@ namespace JsBridgeDotnet.Core
         /// <summary>
         /// Demande de métadonnées d'un service depuis JavaScript (lazy loading)
         /// </summary>
-        GetService = 8
+        GetService = 8,
+
+        /// <summary>
+        /// Demande de valeur d'une propriété depuis JavaScript
+        /// </summary>
+        GetProperty = 9,
+
+        /// <summary>
+        /// Définition de la valeur d'une propriété depuis JavaScript
+        /// </summary>
+        SetProperty = 10
     }
 
     /// <summary>
@@ -80,6 +90,12 @@ namespace JsBridgeDotnet.Core
         /// </summary>
         [JsonPropertyName("methodName")]
         public string MethodName { get; set; }
+
+        /// <summary>
+        /// Nom de la propriété (pour GetProperty/SetProperty)
+        /// </summary>
+        [JsonPropertyName("propertyName")]
+        public string PropertyName { get; set; }
 
         /// <summary>
         /// Identifiant d'écouteur d'événement (pour les abonnements)
@@ -135,6 +151,19 @@ namespace JsBridgeDotnet.Core
         public string Name { get; set; }
         public string Type { get; set; }
         public object Value { get; set; }
+        
+        /// <summary>
+        /// Indique si la propriété est une ObservableCollection qui supporte INotifyCollectionChanged
+        /// </summary>
+        public bool IsObservableCollection { get; set; }
+    }
+
+    /// <summary>
+    /// Métadonnées d'une propriété pour GetProperty/SetProperty
+    /// </summary>
+    public class PropertyRequest
+    {
+        public string PropertyName { get; set; }
     }
 
     /// <summary>

@@ -92,7 +92,7 @@ namespace JsBridgeDotnet.Core
 
                 var serviceInstance = _services[serviceName];
                 var serviceType = serviceInstance.GetType();
-                var registration = GenerateServiceMetadata(serviceName, serviceType);
+                var registration = GenerateServiceMetadata(serviceName, serviceType, serviceInstance);
 
                 // Envoyer les métadonnées à JavaScript
                 var responseMessage = new BridgeMessage
@@ -115,7 +115,7 @@ namespace JsBridgeDotnet.Core
         /// <summary>
         /// Génère les métadonnées du service pour JavaScript
         /// </summary>
-        private ServiceRegistration GenerateServiceMetadata(string serviceName, Type serviceType)
+        private ServiceRegistration GenerateServiceMetadata(string serviceName, Type serviceType, object serviceInstance)
         {
             // Récupérer les méthodes publiques (non héritées de Object)
             var methods = serviceType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
@@ -151,12 +151,23 @@ namespace JsBridgeDotnet.Core
                 {
                     Name = p.Name,
                     Type = GetSimpleTypeName(p.PropertyType),
-                    Value = TryGetPropertyValue(serviceInstance: null, p)
+                    Value = TryGetPropertyValue(serviceInstance, p),
+                    IsObservableCollection = typeof(System.Collections.Specialized.INotifyCollectionChanged)
+                        .IsAssignableFrom(p.PropertyType)
                 })
                 .ToArray();
 
             // Vérifier si le service implémente INotifyPropertyChanged
             var supportsPropertyChanged = typeof(System.ComponentModel.INotifyPropertyChanged).IsAssignableFrom(serviceType);
+
+            // Générer automatiquement les événements pour les collections observables
+            var collectionEvents = properties
+                .Where(p => p.IsObservableCollection)
+                .Select(p => $"{p.Name}Changed")
+                .ToArray();
+
+            // Fusionner les événements manuels et automatiques
+            events = events.Concat(collectionEvents).ToArray();
 
             return new ServiceRegistration
             {
@@ -218,6 +229,9 @@ namespace JsBridgeDotnet.Core
             {
                 SubscribeToPropertyChanged(serviceName, serviceInstance);
             }
+            
+            // S'abonner aux changements de collection (ObservableCollection)
+            SubscribeToCollectionChanges(serviceName, serviceType, serviceInstance);
         }
 
         /// <summary>
@@ -248,6 +262,62 @@ namespace JsBridgeDotnet.Core
 
                 propertyChangedEvent.AddEventHandler(serviceInstance, handler);
                 subscription.Handlers.Add(handler);
+            }
+        }
+
+        /// <summary>
+        /// S'abonne aux changements de collection (ObservableCollection)
+        /// </summary>
+        private void SubscribeToCollectionChanges(string serviceName, Type serviceType, object serviceInstance)
+        {
+            var properties = serviceType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => typeof(System.Collections.Specialized.INotifyCollectionChanged)
+                    .IsAssignableFrom(p.PropertyType));
+
+            foreach (var propertyInfo in properties)
+            {
+                var collection = propertyInfo.GetValue(serviceInstance) as 
+                    System.Collections.Specialized.INotifyCollectionChanged;
+                
+                if (collection != null)
+                {
+                    collection.CollectionChanged += (sender, args) =>
+                    {
+                        OnCollectionChanged(serviceName, propertyInfo.Name, args);
+                    };
+                }
+            }
+        }
+
+        /// <summary>
+        /// Appelé quand une collection change
+        /// </summary>
+        private void OnCollectionChanged(string serviceName, string collectionName, 
+            System.Collections.Specialized.NotifyCollectionChangedEventArgs args)
+        {
+            try
+            {
+                var message = new BridgeMessage
+                {
+                    Type = MessageType.EventFired,
+                    ServiceName = serviceName,
+                    MethodName = $"{collectionName}Changed",
+                    Result = new
+                    {
+                        Action = args.Action.ToString(),
+                        NewItems = args.NewItems?.Cast<object>().ToArray(),
+                        OldItems = args.OldItems?.Cast<object>().ToArray(),
+                        NewStartingIndex = args.NewStartingIndex,
+                        OldStartingIndex = args.OldStartingIndex
+                    },
+                    Success = true
+                };
+                
+                SendMessageToJavaScript(message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending collection change {collectionName} from service {serviceName}: {ex.Message}");
             }
         }
 
@@ -408,6 +478,14 @@ namespace JsBridgeDotnet.Core
                         GetServiceMetadata(message.ServiceName, message.MessageId);
                         break;
 
+                    case MessageType.GetProperty:
+                        HandleGetProperty(message);
+                        break;
+
+                    case MessageType.SetProperty:
+                        HandleSetProperty(message);
+                        break;
+
                     default:
                         SendErrorResponse(message.MessageId, $"Unknown message type: {message.Type}");
                         break;
@@ -420,6 +498,110 @@ namespace JsBridgeDotnet.Core
             catch (Exception ex)
             {
                 SendErrorResponse(null, $"Unexpected error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gère la demande de valeur de propriété depuis JavaScript
+        /// </summary>
+        private void HandleGetProperty(BridgeMessage message)
+        {
+            try
+            {
+                Console.WriteLine($"[C#] HandleGetProperty - Service: {message.ServiceName}, Property: {message.PropertyName}, MessageId: {message.MessageId}");
+
+                if (!_services.ContainsKey(message.ServiceName))
+                {
+                    Console.WriteLine($"[C#] Service '{message.ServiceName}' not found");
+                    SendErrorResponse(message.MessageId, $"Service '{message.ServiceName}' not found");
+                    return;
+                }
+
+                var service = _services[message.ServiceName];
+                var serviceType = service.GetType();
+                var propertyInfo = serviceType.GetProperty(message.PropertyName);
+
+                if (propertyInfo == null || !propertyInfo.CanRead)
+                {
+                    Console.WriteLine($"[C#] Property '{message.PropertyName}' not found or not readable in service '{message.ServiceName}'");
+                    SendErrorResponse(message.MessageId, $"Property '{message.PropertyName}' not found or not readable in service '{message.ServiceName}'");
+                    return;
+                }
+
+                // Récupérer la valeur de la propriété
+                var value = TryGetPropertyValue(service, propertyInfo);
+                Console.WriteLine($"[C#] Property value: {value}");
+
+                // Envoyer le résultat
+                var responseMessage = new BridgeMessage
+                {
+                    MessageId = message.MessageId,
+                    Type = MessageType.MethodResult,
+                    ServiceName = message.ServiceName,
+                    PropertyName = message.PropertyName,
+                    Result = value,
+                    Success = true
+                };
+
+                Console.WriteLine($"[C#] Sending property response with MessageId: {responseMessage.MessageId}");
+                SendMessageToJavaScript(responseMessage);
+            }
+            catch (Exception ex)
+            {
+                SendErrorResponse(message.MessageId, $"Property get error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gère la définition de valeur de propriété depuis JavaScript
+        /// </summary>
+        private void HandleSetProperty(BridgeMessage message)
+        {
+            try
+            {
+                Console.WriteLine($"[C#] HandleSetProperty - Service: {message.ServiceName}, Property: {message.PropertyName}, MessageId: {message.MessageId}");
+
+                if (!_services.ContainsKey(message.ServiceName))
+                {
+                    Console.WriteLine($"[C#] Service '{message.ServiceName}' not found");
+                    SendErrorResponse(message.MessageId, $"Service '{message.ServiceName}' not found");
+                    return;
+                }
+
+                var service = _services[message.ServiceName];
+                var serviceType = service.GetType();
+                var propertyInfo = serviceType.GetProperty(message.PropertyName);
+
+                if (propertyInfo == null || !propertyInfo.CanWrite)
+                {
+                    Console.WriteLine($"[C#] Property '{message.PropertyName}' not found or not writable in service '{message.ServiceName}'");
+                    SendErrorResponse(message.MessageId, $"Property '{message.PropertyName}' not found or not writable in service '{message.ServiceName}'");
+                    return;
+                }
+
+                // Convertir et définir la valeur de la propriété
+                var value = message.Parameters?.Length > 0 ? ConvertParameter(message.Parameters[0], propertyInfo.PropertyType) : null;
+                Console.WriteLine($"[C#] Setting property value: {value}");
+
+                propertyInfo.SetValue(service, value);
+
+                // Envoyer la confirmation
+                var responseMessage = new BridgeMessage
+                {
+                    MessageId = message.MessageId,
+                    Type = MessageType.MethodResult,
+                    ServiceName = message.ServiceName,
+                    PropertyName = message.PropertyName,
+                    Result = new { success = true },
+                    Success = true
+                };
+
+                Console.WriteLine($"[C#] Sending set property response with MessageId: {responseMessage.MessageId}");
+                SendMessageToJavaScript(responseMessage);
+            }
+            catch (Exception ex)
+            {
+                SendErrorResponse(message.MessageId, $"Property set error: {ex.Message}");
             }
         }
 

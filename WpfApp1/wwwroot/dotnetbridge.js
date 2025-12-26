@@ -1,4 +1,4 @@
-const WpfBridge = (function() {
+const DotnetBridge = (function() {
     let messageIdCounter = 0;
     const pendingCalls = {};
     const eventListeners = {};
@@ -14,27 +14,27 @@ const WpfBridge = (function() {
     
     function sendMessage(message) {
         try {
-            console.log('[WpfBridge] Sending message:', message);
+            console.log('[DotnetBridge] Sending message:', message);
             window.chrome.webview.postMessage(JSON.stringify(message));
         } catch (error) {
-            console.error('[WpfBridge] Error sending message:', error);
+            console.error('[DotnetBridge] Error sending message:', error);
             throw error;
         }
     }
     
     function initializeMessageListener() {
         if (!window.chrome?.webview) {
-            console.warn('[WpfBridge] Not running in WebView2 environment');
+            console.warn('[DotnetBridge] Not running in WebView2 environment');
             return;
         }
         
         window.chrome.webview.addEventListener('message', function(event) {
             try {
                 const message = JSON.parse(event.data);
-                console.log('[WpfBridge] Received message:', message.type);
+                console.log('[DotnetBridge] Received message:', message.type);
                 handleMessage(message);
             } catch (error) {
-                console.error('[WpfBridge] Error parsing message:', error);
+                console.error('[DotnetBridge] Error parsing message:', error);
             }
         });
     }
@@ -59,7 +59,7 @@ const WpfBridge = (function() {
                 break;
                 
             default:
-                console.warn('[WpfBridge] Unknown message type:', message.type);
+                console.warn('[DotnetBridge] Unknown message type:', message.type);
         }
     }
     
@@ -100,12 +100,14 @@ const WpfBridge = (function() {
             proxy._propertyValues.set(propertyName, value);
             
             const subscribers = proxy._propertySubscribers.get(propertyName);
+            console.log("-----------  PROPERTY CHANGED : " + propertyName );
+            console.log(subscribers);
             if (subscribers) {
                 subscribers.forEach(callback => {
                     try {
                         callback(value, oldValue);
                     } catch (error) {
-                        console.error(`[WpfBridge] Error in property callback for ${propertyName}:`, error);
+                        console.error(`[DotnetBridge] Error in property callback for ${propertyName}:`, error);
                     }
                 });
             }
@@ -145,24 +147,57 @@ const WpfBridge = (function() {
                 if (target._propertyValues.has(propertyName)) {
                     const propertyValue = target._propertyValues.get(propertyName);
                     
-                    const getter = function() {
-                        return target._propertyValues.get(propertyName);
-                    };
-                    
-                    getter.subscribe = function(callback) {
-                        target._propertySubscribers.get(propertyName).add(callback);
-                        return {
-                            unsubscribe: function() {
-                                target._propertySubscribers.get(propertyName).delete(callback);
-                            }
-                        };
-                    };
-                    
                     subscribeToPropertyChange(serviceName, propertyName);
                     
-                    getter.value = propertyValue;
-                    
-                    return getter;
+                    // Retourner directement la valeur de la propriété (pas une fonction)
+                    return propertyValue;
+                }
+                
+                // Générer automatiquement Get{PropertyName} et Set{PropertyName} pour les propriétés
+                if (propertyName.startsWith('Get') && propertyName.length > 3) {
+                    const propName = propertyName.substring(3);
+                    if (target._propertyValues.has(propName)) {
+                        // Getter généré automatiquement pour la propriété
+                        return function(...args) {
+                            return new Promise((resolve, reject) => {
+                                const messageId = generateMessageId();
+                                pendingCalls[messageId] = { resolve, reject };
+                                
+                                const message = {
+                                    type: 'GetProperty',
+                                    messageId: messageId,
+                                    serviceName: serviceName,
+                                    propertyName: propName
+                                };
+                                
+                                sendMessage(message);
+                            });
+                        };
+                    }
+                }
+                
+                // Générer automatiquement Set{PropertyName} pour les propriétés
+                if (propertyName.startsWith('Set') && propertyName.length > 3) {
+                    const propName = propertyName.substring(3);
+                    if (target._propertyValues.has(propName)) {
+                        // Setter généré automatiquement pour la propriété
+                        return function(value) {
+                            return new Promise((resolve, reject) => {
+                                const messageId = generateMessageId();
+                                pendingCalls[messageId] = { resolve, reject };
+                                
+                                const message = {
+                                    type: 'SetProperty',
+                                    messageId: messageId,
+                                    serviceName: serviceName,
+                                    propertyName: propName,
+                                    parameters: [value]
+                                };
+                                
+                                sendMessage(message);
+                            });
+                        };
+                    }
                 }
                 
                 return function(...args) {
@@ -175,14 +210,14 @@ const WpfBridge = (function() {
     }
     
     function handleMethodResult(message) {
-        console.log('[WpfBridge] handleMethodResult called:', message);
+        console.log('[DotnetBridge] handleMethodResult called:', message);
         
         const { messageId, result, success, error } = message;
         const pending = pendingCalls[messageId];
         
         if (pending) {
             delete pendingCalls[messageId];
-            console.log('[WpfBridge] Resolving pending call for messageId:', messageId);
+            console.log('[DotnetBridge] Resolving pending call for messageId:', messageId);
             
             if (success) {
                 pending.resolve(result);
@@ -190,7 +225,7 @@ const WpfBridge = (function() {
                 pending.reject(new Error(error || 'Method call failed'));
             }
         } else {
-            console.warn('[WpfBridge] No pending call found for messageId:', messageId, 'Pending keys:', Object.keys(pendingCalls));
+            console.warn('[DotnetBridge] No pending call found for messageId:', messageId, 'Pending keys:', Object.keys(pendingCalls));
         }
     }
     
@@ -204,7 +239,7 @@ const WpfBridge = (function() {
                 try {
                     callback(result);
                 } catch (error) {
-                    console.error('[WpfBridge] Error in event callback:', error);
+                    console.error('[DotnetBridge] Error in event callback:', error);
                 }
             });
         }
@@ -216,7 +251,7 @@ const WpfBridge = (function() {
         
         if (service && service._updateProperty) {
             const value = result?.value;
-            console.log(`[WpfBridge] Property ${propertyName} changed to:`, value);
+            console.log(`[DotnetBridge] Property ${propertyName} changed to:`, value);
             service._updateProperty(propertyName, value);
         }
     }
@@ -243,7 +278,7 @@ const WpfBridge = (function() {
     }
     
     function subscribeToEvent(serviceName, eventName, callback) {
-        console.log('[WpfBridge] Subscribing to event:', serviceName, eventName);
+        console.log('[DotnetBridge] Subscribing to event:', serviceName, eventName);
         
         const listenerId = generateMessageId();
         const key = `${serviceName}_${eventName}`;
@@ -265,12 +300,12 @@ const WpfBridge = (function() {
         // Add to pending calls to handle the methodResult response
         pendingCalls[listenerId] = { 
             resolve: () => { /* Subscription successful, no data needed */ },
-            reject: (error) => console.error(`[WpfBridge] Failed to subscribe to ${eventName}:`, error)
+            reject: (error) => console.error(`[DotnetBridge] Failed to subscribe to ${eventName}:`, error)
         };
         
         sendMessage(message);
         
-        console.log('[WpfBridge] Subscription sent with listenerId:', listenerId);
+        console.log('[DotnetBridge] Subscription sent with listenerId:', listenerId);
         return listenerId;
     }
     
@@ -294,13 +329,13 @@ const WpfBridge = (function() {
     
     function notifyBridgeReady() {
         bridgeReady = true;
-        console.log('[WpfBridge] Bridge is ready!');
+        console.log('[DotnetBridge] Bridge is ready!');
         
         bridgeReadyCallbacks.forEach(callback => {
             try {
                 callback();
             } catch (error) {
-                console.error('[WpfBridge] Error in ready callback:', error);
+                console.error('[DotnetBridge] Error in ready callback:', error);
             }
         });
         
@@ -327,12 +362,20 @@ const WpfBridge = (function() {
             
             sendMessage(message);
         }).then(serviceMetadata => {
+        
+            
             // Créer le proxy avec les métadonnées reçues
             const proxy = createServiceProxy(serviceName, serviceMetadata.properties || []);
             services.set(serviceName, proxy);
             
-            console.log('[WpfBridge] Service loaded:', serviceName);
-            
+            console.log('[DotnetBridge] Service loaded:', serviceName);
+            console.log(`[DotnetBridge] Métadonnées reçues pour ${serviceName}:`, {
+                methods: serviceMetadata.methods?.map(m => m.name),
+                events: serviceMetadata.events,
+                properties: serviceMetadata.properties?.map(p => p.name)
+            });
+
+
             if (!bridgeReady) {
                 notifyBridgeReady();
             }
@@ -340,31 +383,7 @@ const WpfBridge = (function() {
             return proxy;
         });
     }
-    
-    function hasService(serviceName) {
-        return services.has(serviceName);
-    }
-    
-    function waitForService(serviceName, timeout = 10000) {
-        return new Promise((resolve, reject) => {
-            if (services.has(serviceName)) {
-                resolve(services.get(serviceName));
-                return;
-            }
-            
-            const timeoutId = setTimeout(() => {
-                reject(new Error(`Service '${serviceName}' not available after ${timeout}ms`));
-            }, timeout);
-            
-            const checkInterval = setInterval(() => {
-                if (services.has(serviceName)) {
-                    clearInterval(checkInterval);
-                    clearTimeout(timeoutId);
-                    resolve(services.get(serviceName));
-                }
-            }, 100);
-        });
-    }
+
     
     function isReady() {
         return bridgeReady;
@@ -382,14 +401,7 @@ const WpfBridge = (function() {
     
     return {
         getService,
-        hasService,
-        waitForService,
         isReady,
         onReady
     };
 })();
-
-async function useSingletonService(serviceName) {
-    // Lazy loading: demander le service quand on en a besoin
-    return await WpfBridge.getService(serviceName);
-}

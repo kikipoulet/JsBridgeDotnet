@@ -20,6 +20,7 @@ public partial class MainWindow : Window
         var serviceBridge = await webView.CreateServiceBridgeAsync();
         
         serviceBridge.RegisterSingletonService("TodoList", new TodoListService());
+        serviceBridge.RegisterSingletonService("Timer", new TimerService());
 
         webView.NavigateToLocalPage("wwwroot", "index.html");
     }
