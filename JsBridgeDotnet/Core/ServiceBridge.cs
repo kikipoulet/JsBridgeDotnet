@@ -24,6 +24,8 @@ namespace JsBridgeDotnet.Core
         private readonly Dictionary<(string service, string eventName), EventSubscription> _eventSubscriptions;
         private readonly JsonSerializerOptions _jsonOptions;
         private bool _isDisposed;
+        private bool _isNavigationCompleted;
+        private readonly List<(string serviceName, object serviceInstance)> _pendingRegistrations;
 
         public ServiceBridge(WebView2 webView)
         {
@@ -31,6 +33,7 @@ namespace JsBridgeDotnet.Core
             _services = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             _pendingCalls = new ConcurrentDictionary<string, Action<object>>();
             _eventSubscriptions = new Dictionary<(string, string), EventSubscription>();
+            _pendingRegistrations = new List<(string, object)>();
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -39,6 +42,7 @@ namespace JsBridgeDotnet.Core
             };
 
             InitializeMessageHandler();
+            InitializeNavigationHandler();
         }
 
         /// <summary>
@@ -55,7 +59,31 @@ namespace JsBridgeDotnet.Core
         }
 
         /// <summary>
+        /// Initialise le gestionnaire de navigation pour savoir quand la WebView est prête
+        /// </summary>
+        private void InitializeNavigationHandler()
+        {
+            _webView.NavigationCompleted += (sender, e) =>
+            {
+                if (!_isNavigationCompleted)
+                {
+                    _isNavigationCompleted = true;
+                    
+                    // Enregistrer tous les services en attente
+                    var registrations = _pendingRegistrations.ToList();
+                    _pendingRegistrations.Clear();
+                    
+                    foreach (var (serviceName, serviceInstance) in registrations)
+                    {
+                        RegisterServiceInternal(serviceName, serviceInstance);
+                    }
+                }
+            };
+        }
+
+        /// <summary>
         /// Enregistre un service et le rend disponible pour JavaScript
+        /// Si la navigation n'est pas terminée, le service sera enregistré automatiquement après
         /// </summary>
         /// <typeparam name="T">Type du service (interface ou classe)</typeparam>
         /// <param name="serviceName">Nom unique du service pour l'identifier côté JavaScript</param>
@@ -68,28 +96,21 @@ namespace JsBridgeDotnet.Core
             if (serviceInstance == null)
                 throw new ArgumentNullException(nameof(serviceInstance));
 
-            _services[serviceName] = serviceInstance;
-
-            // Générer les métadonnées du service
-            var serviceType = serviceInstance.GetType();
-            var registration = GenerateServiceMetadata(serviceName, serviceType);
-
-            // S'abonner aux événements du service
-            SubscribeToServiceEvents(serviceName, serviceType, serviceInstance);
-
-            // Informer JavaScript que le service est disponible
-            var message = new BridgeMessage
+            if (_isNavigationCompleted)
             {
-                Type = MessageType.RegisterService,
-                Result = registration,
-                Success = true
-            };
-
-            SendMessageToJavaScript(message);
+                // Navigation terminée : enregistrer immédiatement
+                RegisterServiceInternal(serviceName, serviceInstance);
+            }
+            else
+            {
+                // Navigation en cours : ajouter à la liste d'attente
+                _pendingRegistrations.Add((serviceName, serviceInstance));
+            }
         }
 
         /// <summary>
         /// Enregistre un service et le rend disponible pour JavaScript
+        /// Si la navigation n'est pas terminée, le service sera enregistré automatiquement après
         /// </summary>
         /// <param name="serviceName">Nom unique du service pour l'identifier côté JavaScript</param>
         /// <param name="serviceInstance">Instance du service à exposer</param>
@@ -101,6 +122,23 @@ namespace JsBridgeDotnet.Core
             if (serviceInstance == null)
                 throw new ArgumentNullException(nameof(serviceInstance));
 
+            if (_isNavigationCompleted)
+            {
+                // Navigation terminée : enregistrer immédiatement
+                RegisterServiceInternal(serviceName, serviceInstance);
+            }
+            else
+            {
+                // Navigation en cours : ajouter à la liste d'attente
+                _pendingRegistrations.Add((serviceName, serviceInstance));
+            }
+        }
+
+        /// <summary>
+        /// Enregistre réellement le service (appelé soit immédiatement, soit après NavigationCompleted)
+        /// </summary>
+        private void RegisterServiceInternal(string serviceName, object serviceInstance)
+        {
             _services[serviceName] = serviceInstance;
 
             // Générer les métadonnées du service
