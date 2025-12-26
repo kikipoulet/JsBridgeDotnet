@@ -1,0 +1,211 @@
+  <!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test ObservableProperty</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #0078d4;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border-left: 4px solid #0078d4;
+        }
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #106ebe;
+        }
+        .output {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .log-entry.success {
+            color: green;
+        }
+        .log-entry.info {
+            color: #0078d4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test ObservableProperty</h1>
+        
+        <div class="section">
+            <h2>Test de la propriété ItemsCount</h2>
+            <p>Ce test démontre l'accès aux propriétés [ObservableProperty] du service TodoList.</p>
+            
+            <div class="code-block">
+<pre>// Exemple d'utilisation JavaScript:
+const todoService = await useSingletonService('TodoList');
+
+// Lire la valeur actuelle
+const count = todoService.ItemsCount();
+console.log('Nombre d\'items:', count);
+
+// S'abonner aux changements
+const subscription = todoService.ItemsCount.subscribe((newValue, oldValue) => {
+    console.log(`ItemsCount changé: ${oldValue} -> ${newValue}`);
+});
+
+// Se désabonner
+subscription.unsubscribe();</pre>
+            </div>
+            
+            <button onclick="testReadProperty()">📖 Lire la propriété</button>
+            <button onclick="testSubscribeProperty()">🔔 S'abonner aux changements</button>
+            <button onclick="testAddItem()">➕ Ajouter un item</button>
+            <button onclick="testRemoveItem()">🗑️ Supprimer un item</button>
+            <button onclick="testUnsubscribe()">❌ Se désabonner</button>
+            <button onclick="clearLogs()">🧹 Effacer les logs</button>
+        </div>
+        
+        <div class="section">
+            <h2>Sortie</h2>
+            <div id="output" class="output">
+                <div class="log-entry info">En attente d'action...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="jsbridge.js"></script>
+    <script>
+        let subscription = null;
+        
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            output.appendChild(entry);
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function clearLogs() {
+            document.getElementById('output').innerHTML = '';
+            log('Logs effacés', 'info');
+        }
+        
+        async function testReadProperty() {
+            try {
+                const todoService = await useSingletonService('TodoList');
+                const count = todoService.ItemsCount();
+                log(`ItemsCount = ${count}`, 'success');
+                log(`Valeur directe: ${todoService.ItemsCount.value}`, 'info');
+            } catch (error) {
+                log(`Erreur: ${error.message}`, 'info');
+            }
+        }
+        
+        async function testSubscribeProperty() {
+            try {
+                const todoService = await useSingletonService('TodoList');
+                
+                if (subscription) {
+                    log('Déjà abonné. Désabonnement en cours...', 'info');
+                    subscription.unsubscribe();
+                }
+                
+                subscription = todoService.ItemsCount.subscribe((newValue, oldValue) => {
+                    log(`🔔 ItemsCount changé: ${oldValue} → ${newValue}`, 'success');
+                });
+                
+                log('✅ Abonné aux changements de ItemsCount', 'success');
+            } catch (error) {
+                log(`Erreur: ${error.message}`, 'info');
+            }
+        }
+        
+        async function testAddItem() {
+            try {
+                const todoService = await useSingletonService('TodoList');
+                const text = `Test item ${Date.now()}`;
+                await todoService.Add(text);
+                log(`✅ Item ajouté: "${text}"`, 'success');
+            } catch (error) {
+                log(`Erreur: ${error.message}`, 'info');
+            }
+        }
+        
+        async function testRemoveItem() {
+            try {
+                const todoService = await useSingletonService('TodoList');
+                const todos = await todoService.GetAll();
+                
+                if (todos.length === 0) {
+                    log('⚠️ Aucun item à supprimer', 'info');
+                    return;
+                }
+                
+                const lastItem = todos[todos.length - 1];
+                await todoService.Remove(lastItem.id);
+                log(`✅ Item supprimé: "${lastItem.text}"`, 'success');
+            } catch (error) {
+                log(`Erreur: ${error.message}`, 'info');
+            }
+        }
+        
+        function testUnsubscribe() {
+            if (subscription) {
+                subscription.unsubscribe();
+                subscription = null;
+                log('❌ Désabonné de ItemsCount', 'success');
+            } else {
+                log('⚠️ Pas d\'abonnement actif', 'info');
+            }
+        }
+        
+        // Initialisation
+        WpfBridge.onReady(() => {
+            log('✅ WpfBridge prêt', 'success');
+        });
+    </script>
+</body>
+</html>
