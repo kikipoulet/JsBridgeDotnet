@@ -41,11 +41,6 @@ const WpfBridge = (function() {
     
     function handleMessage(message) {
         switch (message.type) {
-            case 'registerService':
-            case 'RegisterService':
-                handleServiceRegistration(message);
-                break;
-                
             case 'methodResult':
                 handleMethodResult(message);
                 break;
@@ -68,23 +63,6 @@ const WpfBridge = (function() {
         }
     }
     
-    function handleServiceRegistration(message) {
-        const serviceName = message.result?.serviceName || message.ServiceName;
-        console.log('[WpfBridge] Singleton service registered:', serviceName);
-        console.log('[WpfBridge] Registration message details:', message);
-        
-        if (serviceName) {
-            const properties = message.result?.properties || [];
-            const proxy = createServiceProxy(serviceName, properties);
-            services.set(serviceName, proxy);
-            
-            if (!bridgeReady) {
-                notifyBridgeReady();
-            }
-        } else {
-            console.error('[WpfBridge] Service registration failed - no serviceName in message:', message);
-        }
-    }
     
     function createServiceProxy(serviceName, properties = []) {
         const proxy = {
@@ -329,8 +307,38 @@ const WpfBridge = (function() {
         bridgeReadyCallbacks = [];
     }
     
-    function getService(serviceName) {
-        return services.get(serviceName);
+    async function getService(serviceName) {
+        // Si le service est déjà chargé, le retourner immédiatement
+        if (services.has(serviceName)) {
+            return services.get(serviceName);
+        }
+
+        // Demander les métadonnées du service à C# (lazy loading)
+        const messageId = generateMessageId();
+        
+        return new Promise((resolve, reject) => {
+            pendingCalls[messageId] = { resolve, reject };
+            
+            const message = {
+                type: 'GetService',
+                messageId: messageId,
+                serviceName: serviceName
+            };
+            
+            sendMessage(message);
+        }).then(serviceMetadata => {
+            // Créer le proxy avec les métadonnées reçues
+            const proxy = createServiceProxy(serviceName, serviceMetadata.properties || []);
+            services.set(serviceName, proxy);
+            
+            console.log('[WpfBridge] Service loaded:', serviceName);
+            
+            if (!bridgeReady) {
+                notifyBridgeReady();
+            }
+            
+            return proxy;
+        });
     }
     
     function hasService(serviceName) {
@@ -382,5 +390,6 @@ const WpfBridge = (function() {
 })();
 
 async function useSingletonService(serviceName) {
-    return await WpfBridge.waitForService(serviceName);
+    // Lazy loading: demander le service quand on en a besoin
+    return await WpfBridge.getService(serviceName);
 }

@@ -17,18 +17,11 @@ public partial class MainWindow : Window
 
     private async void InitializeAsync()
     {
-
         var serviceBridge = await webView.CreateServiceBridgeAsync();
+        
+        serviceBridge.RegisterSingletonService("TodoList", new TodoListService());
 
         webView.NavigateToLocalPage("wwwroot", "index.html");
-       
-        
-        var todoListService = new TodoListService();
-
-        webView.NavigationCompleted += (sender, e) =>
-        {
-            serviceBridge.RegisterSingletonService("TodoList", todoListService);
-        };
     }
 
 }

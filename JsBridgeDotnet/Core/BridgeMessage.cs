@@ -46,7 +46,12 @@ namespace JsBridgeDotnet.Core
         /// <summary>
         /// Changement de propriété INotifyPropertyChanged
         /// </summary>
-        PropertyChangeFired = 7
+        PropertyChangeFired = 7,
+
+        /// <summary>
+        /// Demande de métadonnées d'un service depuis JavaScript (lazy loading)
+        /// </summary>
+        GetService = 8
     }
 
     /// <summary>
