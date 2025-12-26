@@ -42,22 +42,22 @@ public partial class TodoListService : ObservableObject
 ## Côté JavaScript
 
 ```javascript
+<script>
+    async function init() {
+        const todoService = await DotnetBridge.getService("TodoList");
 
-const todoService = await DotnetBridge.getService("TodoList");
+        todoService.OnTodosChanged.subscribe((args) => { }); 
 
+        todoservice.GetCount();
+        todoservice.SetCount(x);
 
-todoService.OnTodosChanged.subscribe((args) => { }); 
+        todoservice.Add("item")
 
-todoservice.GetCount();
-todoservice.SetCount(x);
+        todoservice.GetIsRunning();
+        todoservice.SetIsRunning(x);
+        todoservice.OnIsRunningChanged.subscribe((newValue, oldValue) => { });
 
-todoservice.Add("item")
-
-todoservice.GetIsRunning();
-todoservice.SetIsRunning(x);
-todoservice.OnIsRunningChanged.subscribe((newValue, oldValue) => { });
-
-todoService.OnTimerStopped.subscribe(() => { });
-
-
+        todoService.OnTimerStopped.subscribe(() => { });
+    }
+</script>
 ```
