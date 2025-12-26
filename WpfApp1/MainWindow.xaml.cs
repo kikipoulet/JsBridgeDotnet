@@ -1,4 +1,4 @@
-﻿using JsBridgeDotnet.Extensions;
+﻿using JsBridgeDotnet.WebView2Handler;
 using System.Windows;
 using WpfApp1.Services;
 

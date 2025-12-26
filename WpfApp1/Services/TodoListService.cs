@@ -5,27 +5,19 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace WpfApp1.Services
 {
-    /// <summary>
-    /// Représente une tâche dans la liste
-    /// </summary>
+
     public class TodoItem
     {
         public string Id { get; set; } = string.Empty;
         public string Text { get; set; } = string.Empty;
         public bool IsCompleted { get; set; }
     }
-
-    /// <summary>
-    /// Arguments d'événement pour TodoListChanged
-    /// </summary>
+    
     public class TodoListChangedEventArgs : EventArgs
     {
         public TodoItem[] Todos { get; set; } = Array.Empty<TodoItem>();
     }
 
-    /// <summary>
-    /// Service simplifié pour gérer une liste de tâches
-    /// </summary>
     public partial class TodoListService : ObservableObject
     {
         [ObservableProperty] private int _itemsCount = 0;
@@ -40,18 +32,11 @@ namespace WpfApp1.Services
             _todos = new List<TodoItem>();
             _nextId = 1;
         }
-
-        /// <summary>
-        /// Récupère toutes les tâches
-        /// </summary>
         public TodoItem[] GetAll()
         {
             return _todos.ToArray();
         }
 
-        /// <summary>
-        /// Ajoute une nouvelle tâche
-        /// </summary>
         public void Add(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -66,17 +51,10 @@ namespace WpfApp1.Services
 
             _todos.Add(todo);
             _nextId++;
-
-            // Mettre à jour la propriété observable
             ItemsCount = _todos.Count;
-
-            // Déclencher l'événement avec toute la liste mise à jour
             OnTodoListChanged();
         }
 
-        /// <summary>
-        /// Supprime une tâche
-        /// </summary>
         public void Remove(string id)
         {
             var todo = _todos.Find(t => t.Id == id);
@@ -84,39 +62,16 @@ namespace WpfApp1.Services
                 throw new ArgumentException($"Todo with id '{id}' not found");
 
             _todos.Remove(todo);
-
-            // Mettre à jour la propriété observable
             ItemsCount = _todos.Count;
-
-            // Déclencher l'événement avec toute la liste mise à jour
             OnTodoListChanged();
         }
-
-        /// <summary>
-        /// Notifie que la liste a changé
-        /// </summary>
+        
         private void OnTodoListChanged()
         {
             TodoListChanged?.Invoke(this, new TodoListChangedEventArgs
             {
                 Todos = _todos.ToArray()
             });
-        }
-
-        /// <summary>
-        /// Compte le nombre de tâches
-        /// </summary>
-        public int Count()
-        {
-            return _todos.Count;
-        }
-
-        /// <summary>
-        /// Compte le nombre de tâches complétées
-        /// </summary>
-        public int GetCompletedCount()
-        {
-            return _todos.Count(t => t.IsCompleted);
         }
     }
 }

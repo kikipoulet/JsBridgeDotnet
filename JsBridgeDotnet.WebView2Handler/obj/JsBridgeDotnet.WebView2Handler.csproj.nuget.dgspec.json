@@ -1,0 +1,148 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet.WebView2Handler\\JsBridgeDotnet.WebView2Handler.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet.WebView2Handler\\JsBridgeDotnet.WebView2Handler.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet.WebView2Handler\\JsBridgeDotnet.WebView2Handler.csproj",
+        "projectName": "JsBridgeDotnet.WebView2Handler",
+        "projectPath": "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet.WebView2Handler\\JsBridgeDotnet.WebView2Handler.csproj",
+        "packagesPath": "C:\\Users\\Sepul\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet.WebView2Handler\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\Sepul\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0-windows"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0-windows7.0": {
+            "targetAlias": "net9.0-windows",
+            "projectReferences": {
+              "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet\\JsBridgeDotnet.csproj": {
+                "projectPath": "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet\\JsBridgeDotnet.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net9.0-windows7.0": {
+          "targetAlias": "net9.0-windows",
+          "dependencies": {
+            "Microsoft.Web.WebView2": {
+              "target": "Package",
+              "version": "[1.0.3712-prerelease, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            },
+            "Microsoft.WindowsDesktop.App.WPF": {
+              "privateAssets": "none"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet\\JsBridgeDotnet.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet\\JsBridgeDotnet.csproj",
+        "projectName": "JsBridgeDotnet",
+        "projectPath": "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet\\JsBridgeDotnet.csproj",
+        "packagesPath": "C:\\Users\\Sepul\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\Sepul\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0-windows"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0-windows7.0": {
+            "targetAlias": "net9.0-windows",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net9.0-windows7.0": {
+          "targetAlias": "net9.0-windows",
+          "dependencies": {
+            "System.Text.Json": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            },
+            "Microsoft.WindowsDesktop.App.WPF": {
+              "privateAssets": "none"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "6T02Kj6coI0=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet.WebView2Handler\\JsBridgeDotnet.WebView2Handler.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Sepul\\.nuget\\packages\\microsoft.web.webview2\\1.0.3712-prerelease\\microsoft.web.webview2.1.0.3712-prerelease.nupkg.sha512",
+    "C:\\Users\\Sepul\\.nuget\\packages\\system.text.encodings.web\\8.0.0\\system.text.encodings.web.8.0.0.nupkg.sha512",
+    "C:\\Users\\Sepul\\.nuget\\packages\\system.text.json\\8.0.0\\system.text.json.8.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}

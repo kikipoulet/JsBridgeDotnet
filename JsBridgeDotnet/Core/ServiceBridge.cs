@@ -1,4 +1,3 @@
-using Microsoft.Web.WebView2.Wpf;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -18,16 +17,16 @@ namespace JsBridgeDotnet.Core
     /// </summary>
     public class ServiceBridge : IDisposable
     {
-        private readonly WebView2 _webView;
+        private readonly IWebMessageHandler _messageHandler;
         private readonly Dictionary<string, object> _services;
         private readonly ConcurrentDictionary<string, Action<object>> _pendingCalls;
         private readonly Dictionary<(string service, string eventName), EventSubscription> _eventSubscriptions;
         private readonly JsonSerializerOptions _jsonOptions;
         private bool _isDisposed;
 
-        public ServiceBridge(WebView2 webView)
+        public ServiceBridge(IWebMessageHandler messageHandler)
         {
-            _webView = webView ?? throw new ArgumentNullException(nameof(webView));
+            _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
             _services = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             _pendingCalls = new ConcurrentDictionary<string, Action<object>>();
             _eventSubscriptions = new Dictionary<(string, string), EventSubscription>();
@@ -46,12 +45,12 @@ namespace JsBridgeDotnet.Core
         /// </summary>
         private void InitializeMessageHandler()
         {
-            if (_webView.CoreWebView2 == null)
+            if (!_messageHandler.IsInitialized)
             {
-                throw new InvalidOperationException("WebView2 must be initialized before creating ServiceBridge. Call EnsureCoreWebView2Async() first.");
+                throw new InvalidOperationException("MessageHandler must be initialized before creating ServiceBridge. Call InitializeAsync() first.");
             }
 
-            _webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
+            _messageHandler.MessageReceived += OnWebMessageReceived;
         }
 
         /// <summary>
@@ -379,11 +378,10 @@ namespace JsBridgeDotnet.Core
         /// <summary>
         /// Gère les messages venant de JavaScript
         /// </summary>
-        private void OnWebMessageReceived(object sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs e)
+        private void OnWebMessageReceived(object sender, string messageJson)
         {
             try
             {
-                var messageJson = e.TryGetWebMessageAsString();
                 var message = JsonSerializer.Deserialize<BridgeMessage>(messageJson, _jsonOptions);
 
                 if (message == null)
@@ -665,12 +663,9 @@ namespace JsBridgeDotnet.Core
             try
             {
                 var jsonMessage = JsonSerializer.Serialize(message, _jsonOptions);
-                _webView.Dispatcher.Invoke(() =>
+                _messageHandler.Dispatcher.Invoke(() =>
                 {
-                    if (_webView.CoreWebView2 != null)
-                    {
-                        _webView.CoreWebView2.PostWebMessageAsString(jsonMessage);
-                    }
+                    _messageHandler.SendMessage(jsonMessage);
                 });
             }
             catch (Exception ex)
@@ -726,10 +721,7 @@ namespace JsBridgeDotnet.Core
             _services.Clear();
             _pendingCalls.Clear();
 
-            if (_webView.CoreWebView2 != null)
-            {
-                _webView.CoreWebView2.WebMessageReceived -= OnWebMessageReceived;
-            }
+            _messageHandler.MessageReceived -= OnWebMessageReceived;
         }
     }
 

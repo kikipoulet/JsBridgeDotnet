@@ -1,0 +1,6 @@
+C:\Users\Sepul\RiderProjects\WpfApp1\JsBridgeDotnet.WebView2\obj\Debug\net9.0\JsBridgeDotnet.WebView2.csproj.AssemblyReference.cache
+C:\Users\Sepul\RiderProjects\WpfApp1\JsBridgeDotnet.WebView2\obj\Debug\net9.0\JsBridgeDotnet.WebView2.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Sepul\RiderProjects\WpfApp1\JsBridgeDotnet.WebView2\obj\Debug\net9.0\JsBridgeDotnet.WebView2.AssemblyInfoInputs.cache
+C:\Users\Sepul\RiderProjects\WpfApp1\JsBridgeDotnet.WebView2\obj\Debug\net9.0\JsBridgeDotnet.WebView2.AssemblyInfo.cs
+C:\Users\Sepul\RiderProjects\WpfApp1\JsBridgeDotnet.WebView2\obj\Debug\net9.0\JsBridgeDotnet.WebView2.csproj.CoreCompileInputs.cache
+C:\Users\Sepul\RiderProjects\WpfApp1\JsBridgeDotnet.WebView2\obj\Debug\net9.0\JsBridgeDotnet.WebView2.sourcelink.json
