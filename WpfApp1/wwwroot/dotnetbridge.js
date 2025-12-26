@@ -69,12 +69,16 @@ const DotnetBridge = (function() {
             _serviceName: serviceName,
             _listeners: new Map(),
             _propertyValues: new Map(),
-            _propertySubscribers: new Map()
+            _propertySubscribers: new Map(),
+            _observableCollections: new Map()
         };
         
         properties.forEach(prop => {
             proxy._propertyValues.set(prop.name, prop.value);
             proxy._propertySubscribers.set(prop.name, new Set());
+            if (prop.isObservableCollection) {
+                proxy._observableCollections.set(prop.name, true);
+            }
         });
         
         proxy.call = function(methodName, parameters) {
@@ -134,6 +138,61 @@ const DotnetBridge = (function() {
                 
                 if (propertyName.startsWith('On') && propertyName.length > 2) {
                     const eventName = propertyName.slice(2);
+                    
+                    // Vérifier si c'est de la forme On{PropertyName}Changed pour une propriété observable
+                    if (eventName.endsWith('Changed') && eventName.length > 7) {
+                        const propName = eventName.slice(0, -7); // Enlever "Changed"
+                        
+                        // Vérifier si cette propriété existe
+                        if (target._propertyValues.has(propName)) {
+                            // Vérifier si c'est une ObservableCollection ( événement classique)
+                            // ou une ObservableProperty (pas d'abonnement C# nécessaire)
+                            const isObservableCollection = target._observableCollections.get(propName);
+                            
+                            if (isObservableCollection) {
+                                // C'est une ObservableCollection, traiter comme un événement classique
+                                console.log(`[DotnetBridge] ${propName} is an ObservableCollection, using event subscription`);
+                                return {
+                                    subscribe: function(callback) {
+                                        return subscribeToEvent(serviceName, eventName, callback);
+                                    },
+                                    unsubscribe: function(listenerId) {
+                                        unsubscribeFromEvent(serviceName, eventName, listenerId);
+                                    }
+                                };
+                            } else {
+                                // C'est une ObservableProperty, stocker le callback localement
+                                return {
+                                    subscribe: function(callback) {
+                                        const subscribers = target._propertySubscribers.get(propName);
+                                        if (subscribers) {
+                                            const listenerId = generateMessageId();
+                                            subscribers.add(callback);
+                                            // Stocker le mapping listenerId -> callback pour l'unsubscribe
+                                            target._propertySubscriptions = target._propertySubscriptions || new Map();
+                                            target._propertySubscriptions.set(listenerId, { propName, callback });
+                                            console.log(`[DotnetBridge] Subscribed to ObservableProperty ${propName} changes via On${propName}Changed`);
+                                            return listenerId;
+                                        }
+                                        return null;
+                                    },
+                                    unsubscribe: function(listenerId) {
+                                        if (target._propertySubscriptions && target._propertySubscriptions.has(listenerId)) {
+                                            const { propName, callback } = target._propertySubscriptions.get(listenerId);
+                                            const subscribers = target._propertySubscribers.get(propName);
+                                            if (subscribers) {
+                                                subscribers.delete(callback);
+                                                target._propertySubscriptions.delete(listenerId);
+                                                console.log(`[DotnetBridge] Unsubscribed from ObservableProperty ${propName} changes`);
+                                            }
+                                        }
+                                    }
+                                };
+                            }
+                        }
+                    }
+                    
+                    // Sinon, c'est un événement classique
                     return {
                         subscribe: function(callback) {
                             return subscribeToEvent(serviceName, eventName, callback);

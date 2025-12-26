@@ -20,7 +20,7 @@ public partial class TimerService : ObservableObject
         }
         
         IsRunning = true;
-        _secondsRemaining = 5;
+        _secondsRemaining = 3;
         
         _timer = new Timer(1000); // 1 second interval
         _timer.Elapsed += OnTimerElapsed;
