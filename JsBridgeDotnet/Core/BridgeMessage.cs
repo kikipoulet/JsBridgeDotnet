@@ -1,7 +1,7 @@
 using System;
 using System.Text.Json.Serialization;
 
-namespace JsWebviewConnector.Core
+namespace JsBridgeDotnet.Core
 {
     /// <summary>
     /// Types de messages supportés par le bridge

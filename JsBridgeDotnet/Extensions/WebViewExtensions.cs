@@ -1,9 +1,9 @@
 using Microsoft.Web.WebView2.Wpf;
 using System;
 using System.Threading.Tasks;
-using JsWebviewConnector.Core;
+using JsBridgeDotnet.Core;
 
-namespace JsWebviewConnector.Extensions
+namespace JsBridgeDotnet.Extensions
 {
     /// <summary>
     /// Extensions pour faciliter l'utilisation du ServiceBridge avec WebView2

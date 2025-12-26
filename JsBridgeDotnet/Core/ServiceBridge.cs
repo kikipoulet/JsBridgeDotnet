@@ -10,7 +10,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 
-namespace JsWebviewConnector.Core
+namespace JsBridgeDotnet.Core
 {
     /// <summary>
     /// Bridge principal pour la communication entre C# et JavaScript

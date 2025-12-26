@@ -1,5 +1,5 @@
-﻿using JsWebviewConnector.Core;
-using JsWebviewConnector.Extensions;
+﻿using JsBridgeDotnet.Core;
+using JsBridgeDotnet.Extensions;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;

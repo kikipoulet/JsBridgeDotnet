@@ -14,7 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\JsWebviewConnector\JsWebviewConnector.csproj" />
+      <ProjectReference Include="..\JsBridgeDotnet\JsBridgeDotnet.csproj" />
     </ItemGroup>
 
     <ItemGroup>
