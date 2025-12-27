@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("JsBridgeDotnet.WebView2Handler")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bf1817493fb40eaa35310aa8b78893a786281528")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b86cb16e69156157ead27ac9031af3d79101f777")]
 [assembly: System.Reflection.AssemblyProductAttribute("JsBridgeDotnet.WebView2Handler")]
 [assembly: System.Reflection.AssemblyTitleAttribute("JsBridgeDotnet.WebView2Handler")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

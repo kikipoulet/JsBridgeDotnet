@@ -92,6 +92,12 @@ namespace JsBridgeDotnet.Core
         public string MethodName { get; set; }
 
         /// <summary>
+        /// Identifiant d'instance (pour les services transients)
+        /// </summary>
+        [JsonPropertyName("instanceId")]
+        public string InstanceId { get; set; }
+
+        /// <summary>
         /// Nom de la propriété (pour GetProperty/SetProperty)
         /// </summary>
         [JsonPropertyName("propertyName")]
@@ -172,6 +178,8 @@ namespace JsBridgeDotnet.Core
     public class ServiceRegistration
     {
         public string ServiceName { get; set; }
+        public string InstanceId { get; set; }  // Instance unique pour les services transients
+        public string Lifetime { get; set; }  // "Singleton" ou "Transient"
         public MethodMetadata[] Methods { get; set; }
         public string[] Events { get; set; }
         public PropertyMetadata[] Properties { get; set; }

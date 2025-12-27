@@ -12,24 +12,51 @@ using System.Windows.Threading;
 namespace JsBridgeDotnet.Core
 {
     /// <summary>
+    /// Cycle de vie d'un service enregistré
+    /// </summary>
+    public enum ServiceLifetime
+    {
+        /// <summary>
+        /// Une seule instance partagée entre tous les appels
+        /// </summary>
+        Singleton,
+        
+        /// <summary>
+        /// Une nouvelle instance est créée à chaque demande
+        /// </summary>
+        Transient
+    }
+
+    /// <summary>
+    /// Informations sur un service enregistré
+    /// </summary>
+    internal class ServiceRegistrationInfo
+    {
+        public ServiceLifetime Lifetime { get; set; }
+        public object SingletonInstance { get; set; }
+        public Func<object> Factory { get; set; }
+        public ConcurrentDictionary<string, WeakReference<object>> TransientInstances { get; set; } = new();
+    }
+
+    /// <summary>
     /// Bridge principal pour la communication entre C# et JavaScript
     /// Expose les services C# à JavaScript sans modification du code des services
     /// </summary>
     public class ServiceBridge : IDisposable
     {
         private readonly IWebMessageHandler _messageHandler;
-        private readonly Dictionary<string, object> _services;
+        private readonly Dictionary<string, ServiceRegistrationInfo> _serviceRegistrations;
         private readonly ConcurrentDictionary<string, Action<object>> _pendingCalls;
-        private readonly Dictionary<(string service, string eventName), EventSubscription> _eventSubscriptions;
+        private readonly Dictionary<(string service, string eventName, string instanceId), EventSubscription> _eventSubscriptions;
         private readonly JsonSerializerOptions _jsonOptions;
         private bool _isDisposed;
 
         public ServiceBridge(IWebMessageHandler messageHandler)
         {
             _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
-            _services = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            _serviceRegistrations = new Dictionary<string, ServiceRegistrationInfo>(StringComparer.OrdinalIgnoreCase);
             _pendingCalls = new ConcurrentDictionary<string, Action<object>>();
-            _eventSubscriptions = new Dictionary<(string, string), EventSubscription>();
+            _eventSubscriptions = new Dictionary<(string service, string eventName, string instanceId), EventSubscription>();
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -69,30 +96,109 @@ namespace JsBridgeDotnet.Core
             if (serviceInstance == null)
                 throw new ArgumentNullException(nameof(serviceInstance));
             
-            // Stocker le service sans envoyer de message (lazy loading)
-            _services[serviceName] = serviceInstance;
+            // Créer l'enregistrement
+            var registration = new ServiceRegistrationInfo
+            {
+                Lifetime = ServiceLifetime.Singleton,
+                SingletonInstance = serviceInstance
+            };
+            
+            _serviceRegistrations[serviceName] = registration;
 
             // S'abonner aux événements du service pour pouvoir les relayer à JavaScript
             var serviceType = serviceInstance.GetType();
-            SubscribeToServiceEvents(serviceName, serviceType, serviceInstance);
+            SubscribeToServiceEvents(serviceName, serviceType, serviceInstance, null);
+        }
+
+        /// <summary>
+        /// Enregistre un service transient qui créera une nouvelle instance à chaque demande
+        /// </summary>
+        /// <typeparam name="T">Type du service (interface ou classe)</typeparam>
+        /// <param name="serviceName">Nom unique du service pour l'identifier côté JavaScript</param>
+        /// <param name="factory">Factory pour créer des nouvelles instances</param>
+        public void RegisterTransientService<T>(string serviceName, Func<T> factory)
+        {
+            if (string.IsNullOrWhiteSpace(serviceName))
+                throw new ArgumentException("Service name cannot be empty", nameof(serviceName));
+
+            if (factory == null)
+                throw new ArgumentNullException(nameof(factory));
+            
+            // Créer l'enregistrement
+            var registration = new ServiceRegistrationInfo
+            {
+                Lifetime = ServiceLifetime.Transient,
+                Factory = () => factory()
+            };
+            
+            _serviceRegistrations[serviceName] = registration;
+        }
+
+        /// <summary>
+        /// Enregistre un service transient avec un constructeur par défaut
+        /// </summary>
+        /// <typeparam name="T">Type du service (doit avoir un constructeur par défaut)</typeparam>
+        /// <param name="serviceName">Nom unique du service pour l'identifier côté JavaScript</param>
+        public void RegisterTransientService<T>(string serviceName) where T : new()
+        {
+            RegisterTransientService(serviceName, () => new T());
         }
 
         /// <summary>
         /// Renvoie les métadonnées d'un service demandé par JavaScript (lazy loading)
         /// </summary>
-        private void GetServiceMetadata(string serviceName, string messageId)
+        private void GetServiceMetadata(string serviceName, string messageId, string instanceId = null)
         {
             try
             {
-                if (!_services.ContainsKey(serviceName))
+                if (!_serviceRegistrations.ContainsKey(serviceName))
                 {
                     SendErrorResponse(messageId, $"Service '{serviceName}' not found");
                     return;
                 }
 
-                var serviceInstance = _services[serviceName];
-                var serviceType = serviceInstance.GetType();
-                var registration = GenerateServiceMetadata(serviceName, serviceType, serviceInstance);
+                var registrationInfo = _serviceRegistrations[serviceName];
+                object serviceInstance;
+                string actualInstanceId = null;
+
+                if (registrationInfo.Lifetime == ServiceLifetime.Singleton)
+                {
+                    // Singleton : toujours la même instance
+                    serviceInstance = registrationInfo.SingletonInstance;
+                    actualInstanceId = null;
+                }
+                else // Transient
+                {
+                    // Transient : créer ou récupérer une instance spécifique
+                    if (string.IsNullOrEmpty(instanceId))
+                    {
+                        // Nouvelle instance demandée
+                        serviceInstance = registrationInfo.Factory();
+                        actualInstanceId = Guid.NewGuid().ToString();
+                        
+                        // Stocker avec WeakReference
+                        registrationInfo.TransientInstances.TryAdd(actualInstanceId, 
+                            new WeakReference<object>(serviceInstance, trackResurrection: false));
+                        
+                        // S'abonner aux événements de cette nouvelle instance
+                        var serviceType = serviceInstance.GetType();
+                        SubscribeToServiceEvents(serviceName, serviceType, serviceInstance, actualInstanceId);
+                    }
+                    else
+                    {
+                        // Instance existante demandée
+                        actualInstanceId = instanceId;
+                        serviceInstance = GetTransientInstance(serviceName, instanceId);
+                        
+                        if (serviceInstance == null)
+                        {
+                            SendErrorResponse(messageId, $"Transient instance '{instanceId}' not found or was garbage collected");
+                            return;
+                        }
+                    }
+                }
+
+                var registration = GenerateServiceMetadata(serviceName, serviceInstance.GetType(), serviceInstance, actualInstanceId, registrationInfo.Lifetime);
 
                 // Envoyer les métadonnées à JavaScript
                 var responseMessage = new BridgeMessage
@@ -100,6 +206,7 @@ namespace JsBridgeDotnet.Core
                     MessageId = messageId,
                     Type = MessageType.MethodResult,
                     ServiceName = serviceName,
+                    InstanceId = actualInstanceId,
                     Result = registration,
                     Success = true
                 };
@@ -113,9 +220,33 @@ namespace JsBridgeDotnet.Core
         }
 
         /// <summary>
+        /// Récupère une instance transient existante
+        /// </summary>
+        private object GetTransientInstance(string serviceName, string instanceId)
+        {
+            if (!_serviceRegistrations.ContainsKey(serviceName))
+                return null;
+
+            var registrationInfo = _serviceRegistrations[serviceName];
+            if (registrationInfo.TransientInstances.TryGetValue(instanceId, out var weakRef))
+            {
+                if (weakRef.TryGetTarget(out var instance))
+                {
+                    return instance;
+                }
+                else
+                {
+                    // Instance a été GC, la nettoyer
+                    registrationInfo.TransientInstances.TryRemove(instanceId, out _);
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Génère les métadonnées du service pour JavaScript
         /// </summary>
-        private ServiceRegistration GenerateServiceMetadata(string serviceName, Type serviceType, object serviceInstance)
+        private ServiceRegistration GenerateServiceMetadata(string serviceName, Type serviceType, object serviceInstance, string instanceId, ServiceLifetime lifetime)
         {
             // Récupérer les méthodes publiques (non héritées de Object)
             var methods = serviceType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
@@ -172,6 +303,8 @@ namespace JsBridgeDotnet.Core
             return new ServiceRegistration
             {
                 ServiceName = serviceName,
+                InstanceId = instanceId,
+                Lifetime = lifetime.ToString(),
                 Methods = methods,
                 Events = events,
                 Properties = properties,
@@ -196,14 +329,14 @@ namespace JsBridgeDotnet.Core
         /// <summary>
         /// S'abonne aux événements du service pour les relayer à JavaScript
         /// </summary>
-        private void SubscribeToServiceEvents(string serviceName, Type serviceType, object serviceInstance)
+        private void SubscribeToServiceEvents(string serviceName, Type serviceType, object serviceInstance, string instanceId)
         {
             var events = serviceType.GetEvents(BindingFlags.Public | BindingFlags.Instance)
                 .Where(e => e.DeclaringType != typeof(object) && e.Name != "PropertyChanged");
 
             foreach (var eventInfo in events)
             {
-                var key = (serviceName, eventInfo.Name);
+                var key = (serviceName, eventInfo.Name, instanceId);
 
                 if (!_eventSubscriptions.ContainsKey(key))
                 {
@@ -218,7 +351,7 @@ namespace JsBridgeDotnet.Core
                     _eventSubscriptions[key] = subscription;
 
                     // Créer un handler qui relayera les événements à JavaScript
-                    var eventHandler = CreateEventHandler(eventInfo, serviceName, eventInfo.Name);
+                    var eventHandler = CreateEventHandler(eventInfo, serviceName, eventInfo.Name, instanceId);
                     eventInfo.AddEventHandler(serviceInstance, eventHandler);
                     subscription.Handlers.Add(eventHandler);
                 }
@@ -227,20 +360,20 @@ namespace JsBridgeDotnet.Core
             // S'abonner à PropertyChanged si le service implémente INotifyPropertyChanged
             if (typeof(System.ComponentModel.INotifyPropertyChanged).IsAssignableFrom(serviceType))
             {
-                SubscribeToPropertyChanged(serviceName, serviceInstance);
+                SubscribeToPropertyChanged(serviceName, serviceInstance, instanceId);
             }
             
             // S'abonner aux changements de collection (ObservableCollection)
-            SubscribeToCollectionChanges(serviceName, serviceType, serviceInstance);
+            SubscribeToCollectionChanges(serviceName, serviceType, serviceInstance, instanceId);
         }
 
         /// <summary>
         /// S'abonne à l'événement PropertyChanged
         /// </summary>
-        private void SubscribeToPropertyChanged(string serviceName, object serviceInstance)
+        private void SubscribeToPropertyChanged(string serviceName, object serviceInstance, string instanceId)
         {
             var propertyChangedEvent = typeof(System.ComponentModel.INotifyPropertyChanged).GetEvent("PropertyChanged");
-            var key = (serviceName, "PropertyChanged");
+            var key = (serviceName, "PropertyChanged", instanceId);
 
             if (!_eventSubscriptions.ContainsKey(key))
             {
@@ -257,7 +390,7 @@ namespace JsBridgeDotnet.Core
                 // Créer un handler spécial pour PropertyChanged
                 var handler = new System.ComponentModel.PropertyChangedEventHandler((sender, args) =>
                 {
-                    OnPropertyChangedFired(serviceName, args.PropertyName, serviceInstance);
+                    OnPropertyChangedFired(serviceName, args.PropertyName, serviceInstance, instanceId);
                 });
 
                 propertyChangedEvent.AddEventHandler(serviceInstance, handler);
@@ -268,7 +401,7 @@ namespace JsBridgeDotnet.Core
         /// <summary>
         /// S'abonne aux changements de collection (ObservableCollection)
         /// </summary>
-        private void SubscribeToCollectionChanges(string serviceName, Type serviceType, object serviceInstance)
+        private void SubscribeToCollectionChanges(string serviceName, Type serviceType, object serviceInstance, string instanceId)
         {
             var properties = serviceType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => typeof(System.Collections.Specialized.INotifyCollectionChanged)
@@ -283,7 +416,7 @@ namespace JsBridgeDotnet.Core
                 {
                     collection.CollectionChanged += (sender, args) =>
                     {
-                        OnCollectionChanged(serviceName, propertyInfo.Name, args);
+                        OnCollectionChanged(serviceName, propertyInfo.Name, args, instanceId);
                     };
                 }
             }
@@ -293,7 +426,7 @@ namespace JsBridgeDotnet.Core
         /// Appelé quand une collection change
         /// </summary>
         private void OnCollectionChanged(string serviceName, string collectionName, 
-            System.Collections.Specialized.NotifyCollectionChangedEventArgs args)
+            System.Collections.Specialized.NotifyCollectionChangedEventArgs args, string instanceId = null)
         {
             try
             {
@@ -301,6 +434,7 @@ namespace JsBridgeDotnet.Core
                 {
                     Type = MessageType.EventFired,
                     ServiceName = serviceName,
+                    InstanceId = instanceId,
                     MethodName = $"{collectionName}Changed",
                     Result = new
                     {
@@ -324,7 +458,7 @@ namespace JsBridgeDotnet.Core
         /// <summary>
         /// Appelé quand une propriété change
         /// </summary>
-        private void OnPropertyChangedFired(string serviceName, string propertyName, object serviceInstance)
+        private void OnPropertyChangedFired(string serviceName, string propertyName, object serviceInstance, string instanceId = null)
         {
             try
             {
@@ -338,6 +472,7 @@ namespace JsBridgeDotnet.Core
                 {
                     Type = MessageType.PropertyChangeFired,
                     ServiceName = serviceName,
+                    InstanceId = instanceId,
                     MethodName = propertyName,
                     Result = new
                     {
@@ -387,7 +522,7 @@ namespace JsBridgeDotnet.Core
         /// <summary>
         /// Crée un handler d'événement dynamique
         /// </summary>
-        private Delegate CreateEventHandler(EventInfo eventInfo, string serviceName, string eventName)
+        private Delegate CreateEventHandler(EventInfo eventInfo, string serviceName, string eventName, string instanceId)
         {
             var eventType = eventInfo.EventHandlerType;
             var invokeMethod = eventType.GetMethod("Invoke");
@@ -407,7 +542,7 @@ namespace JsBridgeDotnet.Core
             // Créer une méthode qui sera appelée quand l'événement se déclenche
             var targetMethod = new Action<object, object>((sender, args) =>
             {
-                OnServiceEventFired(serviceName, eventName, args);
+                OnServiceEventFired(serviceName, eventName, args, instanceId);
             });
 
             var callExpression = Expression.Call(
@@ -423,7 +558,7 @@ namespace JsBridgeDotnet.Core
         /// <summary>
         /// Appelé quand un événement de service se déclenche
         /// </summary>
-        private void OnServiceEventFired(string serviceName, string eventName, object eventArgs)
+        private void OnServiceEventFired(string serviceName, string eventName, object eventArgs, string instanceId = null)
         {
             try
             {
@@ -431,6 +566,7 @@ namespace JsBridgeDotnet.Core
                 {
                     Type = MessageType.EventFired,
                     ServiceName = serviceName,
+                    InstanceId = instanceId,
                     MethodName = eventName,
                     Result = eventArgs,
                     Success = true
@@ -475,7 +611,7 @@ namespace JsBridgeDotnet.Core
                         break;
 
                     case MessageType.GetService:
-                        GetServiceMetadata(message.ServiceName, message.MessageId);
+                        GetServiceMetadata(message.ServiceName, message.MessageId, message.InstanceId);
                         break;
 
                     case MessageType.GetProperty:
@@ -502,6 +638,30 @@ namespace JsBridgeDotnet.Core
         }
 
         /// <summary>
+        /// Récupère l'instance de service appropriée (singleton ou transient)
+        /// </summary>
+        private object GetServiceInstance(string serviceName, string instanceId)
+        {
+            if (!_serviceRegistrations.ContainsKey(serviceName))
+                return null;
+
+            var registrationInfo = _serviceRegistrations[serviceName];
+            
+            if (registrationInfo.Lifetime == ServiceLifetime.Singleton)
+            {
+                return registrationInfo.SingletonInstance;
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(instanceId))
+                {
+                    return null; // Doit fournir instanceId pour les transients
+                }
+                return GetTransientInstance(serviceName, instanceId);
+            }
+        }
+
+        /// <summary>
         /// Gère la demande de valeur de propriété depuis JavaScript
         /// </summary>
         private void HandleGetProperty(BridgeMessage message)
@@ -510,14 +670,15 @@ namespace JsBridgeDotnet.Core
             {
                 Console.WriteLine($"[C#] HandleGetProperty - Service: {message.ServiceName}, Property: {message.PropertyName}, MessageId: {message.MessageId}");
 
-                if (!_services.ContainsKey(message.ServiceName))
+                var service = GetServiceInstance(message.ServiceName, message.InstanceId);
+                
+                if (service == null)
                 {
                     Console.WriteLine($"[C#] Service '{message.ServiceName}' not found");
                     SendErrorResponse(message.MessageId, $"Service '{message.ServiceName}' not found");
                     return;
                 }
 
-                var service = _services[message.ServiceName];
                 var serviceType = service.GetType();
                 var propertyInfo = serviceType.GetProperty(message.PropertyName);
 
@@ -561,14 +722,15 @@ namespace JsBridgeDotnet.Core
             {
                 Console.WriteLine($"[C#] HandleSetProperty - Service: {message.ServiceName}, Property: {message.PropertyName}, MessageId: {message.MessageId}");
 
-                if (!_services.ContainsKey(message.ServiceName))
+                var service = GetServiceInstance(message.ServiceName, message.InstanceId);
+                
+                if (service == null)
                 {
                     Console.WriteLine($"[C#] Service '{message.ServiceName}' not found");
                     SendErrorResponse(message.MessageId, $"Service '{message.ServiceName}' not found");
                     return;
                 }
 
-                var service = _services[message.ServiceName];
                 var serviceType = service.GetType();
                 var propertyInfo = serviceType.GetProperty(message.PropertyName);
 
@@ -614,14 +776,15 @@ namespace JsBridgeDotnet.Core
             {
                 Console.WriteLine($"[C#] HandleMethodCall - Service: {message.ServiceName}, Method: {message.MethodName}, MessageId: {message.MessageId}");
                 
-                if (!_services.ContainsKey(message.ServiceName))
+                var service = GetServiceInstance(message.ServiceName, message.InstanceId);
+                
+                if (service == null)
                 {
                     Console.WriteLine($"[C#] Service '{message.ServiceName}' not found");
                     SendErrorResponse(message.MessageId, $"Service '{message.ServiceName}' not found");
                     return;
                 }
 
-                var service = _services[message.ServiceName];
                 var serviceType = service.GetType();
                 var methodInfo = serviceType.GetMethod(message.MethodName);
 
@@ -771,7 +934,8 @@ namespace JsBridgeDotnet.Core
         {
             try
             {
-                var key = (message.ServiceName, message.MethodName);
+                var instanceId = message.InstanceId ?? string.Empty;
+                var key = (message.ServiceName, message.MethodName, instanceId);
 
                 if (!_eventSubscriptions.ContainsKey(key))
                 {
@@ -900,7 +1064,7 @@ namespace JsBridgeDotnet.Core
             }
 
             _eventSubscriptions.Clear();
-            _services.Clear();
+            _serviceRegistrations.Clear();
             _pendingCalls.Clear();
 
             _messageHandler.MessageReceived -= OnWebMessageReceived;

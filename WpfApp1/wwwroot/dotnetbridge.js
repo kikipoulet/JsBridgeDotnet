@@ -64,9 +64,10 @@ const DotnetBridge = (function() {
     }
     
     
-    function createServiceProxy(serviceName, properties = []) {
+    function createServiceProxy(serviceName, properties = [], instanceId = null) {
         const proxy = {
             _serviceName: serviceName,
+            _instanceId: instanceId,
             _listeners: new Map(),
             _propertyValues: new Map(),
             _propertySubscribers: new Map(),
@@ -91,6 +92,7 @@ const DotnetBridge = (function() {
                     type: 'CallMethod',
                     messageId: messageId,
                     serviceName: serviceName,
+                    instanceId: instanceId,
                     methodName: methodName,
                     parameters: parameters || []
                 };
@@ -154,10 +156,10 @@ const DotnetBridge = (function() {
                                 console.log(`[DotnetBridge] ${propName} is an ObservableCollection, using event subscription`);
                                 return {
                                     subscribe: function(callback) {
-                                        return subscribeToEvent(serviceName, eventName, callback);
+                                        return subscribeToEvent(serviceName, eventName, callback, instanceId);
                                     },
                                     unsubscribe: function(listenerId) {
-                                        unsubscribeFromEvent(serviceName, eventName, listenerId);
+                                        unsubscribeFromEvent(serviceName, eventName, listenerId, instanceId);
                                     }
                                 };
                             } else {
@@ -195,10 +197,10 @@ const DotnetBridge = (function() {
                     // Sinon, c'est un événement classique
                     return {
                         subscribe: function(callback) {
-                            return subscribeToEvent(serviceName, eventName, callback);
+                            return subscribeToEvent(serviceName, eventName, callback, instanceId);
                         },
                         unsubscribe: function(listenerId) {
-                            unsubscribeFromEvent(serviceName, eventName, listenerId);
+                            unsubscribeFromEvent(serviceName, eventName, listenerId, instanceId);
                         }
                     };
                 }
@@ -212,52 +214,54 @@ const DotnetBridge = (function() {
                     return propertyValue;
                 }
                 
-                // Générer automatiquement Get{PropertyName} et Set{PropertyName} pour les propriétés
-                if (propertyName.startsWith('Get') && propertyName.length > 3) {
-                    const propName = propertyName.substring(3);
-                    if (target._propertyValues.has(propName)) {
-                        // Getter généré automatiquement pour la propriété
-                        return function(...args) {
-                            return new Promise((resolve, reject) => {
-                                const messageId = generateMessageId();
-                                pendingCalls[messageId] = { resolve, reject };
-                                
-                                const message = {
-                                    type: 'GetProperty',
-                                    messageId: messageId,
-                                    serviceName: serviceName,
-                                    propertyName: propName
-                                };
-                                
-                                sendMessage(message);
-                            });
-                        };
-                    }
+            // Générer automatiquement Get{PropertyName} et Set{PropertyName} pour les propriétés
+            if (propertyName.startsWith('Get') && propertyName.length > 3) {
+                const propName = propertyName.substring(3);
+                if (target._propertyValues.has(propName)) {
+                    // Getter généré automatiquement pour la propriété
+                    return function(...args) {
+                        return new Promise((resolve, reject) => {
+                            const messageId = generateMessageId();
+                            pendingCalls[messageId] = { resolve, reject };
+                            
+                            const message = {
+                                type: 'GetProperty',
+                                messageId: messageId,
+                                serviceName: serviceName,
+                                instanceId: instanceId,
+                                propertyName: propName
+                            };
+                            
+                            sendMessage(message);
+                        });
+                    };
                 }
+            }
                 
-                // Générer automatiquement Set{PropertyName} pour les propriétés
-                if (propertyName.startsWith('Set') && propertyName.length > 3) {
-                    const propName = propertyName.substring(3);
-                    if (target._propertyValues.has(propName)) {
-                        // Setter généré automatiquement pour la propriété
-                        return function(value) {
-                            return new Promise((resolve, reject) => {
-                                const messageId = generateMessageId();
-                                pendingCalls[messageId] = { resolve, reject };
-                                
-                                const message = {
-                                    type: 'SetProperty',
-                                    messageId: messageId,
-                                    serviceName: serviceName,
-                                    propertyName: propName,
-                                    parameters: [value]
-                                };
-                                
-                                sendMessage(message);
-                            });
-                        };
-                    }
+            // Générer automatiquement Set{PropertyName} pour les propriétés
+            if (propertyName.startsWith('Set') && propertyName.length > 3) {
+                const propName = propertyName.substring(3);
+                if (target._propertyValues.has(propName)) {
+                    // Setter généré automatiquement pour la propriété
+                    return function(value) {
+                        return new Promise((resolve, reject) => {
+                            const messageId = generateMessageId();
+                            pendingCalls[messageId] = { resolve, reject };
+                            
+                            const message = {
+                                type: 'SetProperty',
+                                messageId: messageId,
+                                serviceName: serviceName,
+                                instanceId: instanceId,
+                                propertyName: propName,
+                                parameters: [value]
+                            };
+                            
+                            sendMessage(message);
+                        });
+                    };
                 }
+            }
                 
                 return function(...args) {
                     return proxy.call(propertyName, args);
@@ -289,8 +293,9 @@ const DotnetBridge = (function() {
     }
     
     function handleEventFired(message) {
-        const { serviceName, methodName: eventName, result } = message;
-        const key = `${serviceName}_${eventName}`;
+        const { serviceName, methodName: eventName, result, instanceId } = message;
+        // Utiliser l'instanceId pour construire la clé des écouteurs
+        const key = instanceId ? `${serviceName}_${eventName}_${instanceId}` : `${serviceName}_${eventName}`;
         const listeners = eventListeners[key];
         
         if (listeners) {
@@ -305,13 +310,18 @@ const DotnetBridge = (function() {
     }
     
     function handlePropertyChange(message) {
-        const { serviceName, methodName: propertyName, result } = message;
-        const service = services.get(serviceName);
+        const { serviceName, methodName: propertyName, result, instanceId } = message;
+        
+        // Construire la bonne clé de cache
+        const cacheKey = instanceId ? `${serviceName}_${instanceId}` : serviceName;
+        const service = services.get(cacheKey);
         
         if (service && service._updateProperty) {
             const value = result?.value;
             console.log(`[DotnetBridge] Property ${propertyName} changed to:`, value);
             service._updateProperty(propertyName, value);
+        } else {
+            console.warn(`[DotnetBridge] Service not found for property change: ${cacheKey}`);
         }
     }
 
@@ -336,11 +346,11 @@ const DotnetBridge = (function() {
         }
     }
     
-    function subscribeToEvent(serviceName, eventName, callback) {
-        console.log('[DotnetBridge] Subscribing to event:', serviceName, eventName);
+    function subscribeToEvent(serviceName, eventName, callback, instanceId) {
+        console.log('[DotnetBridge] Subscribing to event:', serviceName, eventName, 'instanceId:', instanceId);
         
         const listenerId = generateMessageId();
-        const key = `${serviceName}_${eventName}`;
+        const key = instanceId ? `${serviceName}_${eventName}_${instanceId}` : `${serviceName}_${eventName}`;
         
         if (!eventListeners[key]) {
             eventListeners[key] = new Set();
@@ -353,6 +363,7 @@ const DotnetBridge = (function() {
             messageId: listenerId,
             listenerId: listenerId,
             serviceName: serviceName,
+            instanceId: instanceId,
             methodName: eventName
         };
         
@@ -368,8 +379,8 @@ const DotnetBridge = (function() {
         return listenerId;
     }
     
-    function unsubscribeFromEvent(serviceName, eventName, listenerId) {
-        const key = `${serviceName}_${eventName}`;
+    function unsubscribeFromEvent(serviceName, eventName, listenerId, instanceId) {
+        const key = instanceId ? `${serviceName}_${eventName}_${instanceId}` : `${serviceName}_${eventName}`;
         
         if (eventListeners[key]) {
             eventListeners[key].clear();
@@ -380,6 +391,7 @@ const DotnetBridge = (function() {
             messageId: listenerId,
             listenerId: listenerId,
             serviceName: serviceName,
+            instanceId: instanceId,
             methodName: eventName
         };
         
@@ -401,10 +413,24 @@ const DotnetBridge = (function() {
         bridgeReadyCallbacks = [];
     }
     
-    async function getService(serviceName) {
-        // Si le service est déjà chargé, le retourner immédiatement
-        if (services.has(serviceName)) {
+    async function getService(serviceName, options = {}) {
+        // options.instanceId : pour récupérer une instance transient spécifique
+        // options.createNewInstance : pour forcer la création d'une nouvelle instance transient
+        
+        const cacheKey = options.instanceId 
+            ? `${serviceName}_${options.instanceId}`
+            : serviceName;
+        
+        // Pour singleton : comportement actuel (cache)
+        if (!options.createNewInstance && !options.instanceId && services.has(serviceName)) {
             return services.get(serviceName);
+        }
+        
+        // Pour transient : ne pas mettre en cache (ou cache avec instanceId unique)
+        if (options.createNewInstance || options.instanceId) {
+            // Ne pas utiliser le cache, toujours demander à C#
+        } else if (services.has(cacheKey)) {
+            return services.get(cacheKey);
         }
 
         // Demander les métadonnées du service à C# (lazy loading)
@@ -416,19 +442,31 @@ const DotnetBridge = (function() {
             const message = {
                 type: 'GetService',
                 messageId: messageId,
-                serviceName: serviceName
+                serviceName: serviceName,
+                instanceId: options.instanceId
             };
             
             sendMessage(message);
         }).then(serviceMetadata => {
         
-            
             // Créer le proxy avec les métadonnées reçues
-            const proxy = createServiceProxy(serviceName, serviceMetadata.properties || []);
-            services.set(serviceName, proxy);
+            const proxy = createServiceProxy(serviceName, serviceMetadata.properties || [], serviceMetadata.instanceId);
+            
+            // Cache avec la clé appropriée
+            if (serviceMetadata.lifetime === 'Singleton') {
+                services.set(serviceName, proxy);
+            } else {
+                // Pour les transients, utiliser une clé unique avec instanceId
+                const transientCacheKey = serviceMetadata.instanceId 
+                    ? `${serviceName}_${serviceMetadata.instanceId}`
+                    : `${serviceName}_${Date.now()}_${Math.random()}`;
+                services.set(transientCacheKey, proxy);
+            }
             
             console.log('[DotnetBridge] Service loaded:', serviceName);
             console.log(`[DotnetBridge] Métadonnées reçues pour ${serviceName}:`, {
+                lifetime: serviceMetadata.lifetime,
+                instanceId: serviceMetadata.instanceId,
                 methods: serviceMetadata.methods?.map(m => m.name),
                 events: serviceMetadata.events,
                 properties: serviceMetadata.properties?.map(p => p.name)
