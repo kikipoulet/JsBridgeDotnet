@@ -1,6 +1,7 @@
 using JsBridgeDotnet.Core;
 using System;
 using System.Threading.Tasks;
+using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 
 namespace JsBridgeDotnet.WebView2Handler
@@ -30,8 +31,7 @@ namespace JsBridgeDotnet.WebView2Handler
         {
             if (_isInitialized)
                 return;
-
-            await _webView.EnsureCoreWebView2Async();
+          
 
             if (_webView.CoreWebView2 == null)
             {

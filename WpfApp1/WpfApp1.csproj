@@ -14,13 +14,17 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\JsBridgeDotnet.WebView2Handler\JsBridgeDotnet.WebView2Handler.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
       <Content Include="wwwroot\**">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="wwwroot\svelte\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\JsBridgeDotnet.WebView2Handler\JsBridgeDotnet.WebView2.csproj" />
     </ItemGroup>
 
 </Project>

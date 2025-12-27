@@ -1,5 +1,7 @@
-﻿using JsBridgeDotnet.WebView2Handler;
+﻿using System.IO;
+using JsBridgeDotnet.WebView2Handler;
 using System.Windows;
+using Microsoft.Web.WebView2.Core;
 using WpfApp1.Services;
 
 namespace WpfApp1;
@@ -17,17 +19,20 @@ public partial class MainWindow : Window
 
     private async void InitializeAsync()
     {
+        await webView.ConfigureLocalPage("wwwroot", "svelte", "sveltedemo", "dist");
+        
         var serviceBridge = await webView.CreateServiceBridgeAsync();
         
-        // Enregistrement de services singleton (comportement existant)
-       // serviceBridge.RegisterTransientService<TodoListService>("TodoList",() => new TodoListService());
         serviceBridge.RegisterSingletonService("TodoList", new TodoListService());
-     
         serviceBridge.RegisterSingletonService("Timer", new TimerService());
+       // serviceBridge.RegisterTransientService<TodoListService>("TodoList",() => new TodoListService());
        // serviceBridge.RegisterTransientService<TimerService>("Timer", () => new TimerService());
 
 
-        webView.NavigateToLocalPage("wwwroot", "index.html");
+       
+       webView.Source = new Uri("https://appassets/index.html");
+       //webView.NavigateToLocalPage("wwwroot","vanillajs", "index.html");
+       //webView.NavigateToLocalPage("wwwroot","svelte","sveltedemo","dist", "index.html");
     }
 
 }

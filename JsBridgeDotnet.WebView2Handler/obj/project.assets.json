@@ -309,9 +309,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet.WebView2Handler\\JsBridgeDotnet.WebView2Handler.csproj",
-      "projectName": "JsBridgeDotnet.WebView2Handler",
-      "projectPath": "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet.WebView2Handler\\JsBridgeDotnet.WebView2Handler.csproj",
+      "projectUniqueName": "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet.WebView2Handler\\JsBridgeDotnet.WebView2.csproj",
+      "projectName": "JsBridgeDotnet.WebView2",
+      "projectPath": "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet.WebView2Handler\\JsBridgeDotnet.WebView2.csproj",
       "packagesPath": "C:\\Users\\Sepul\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet.WebView2Handler\\obj\\",
       "projectStyle": "PackageReference",
