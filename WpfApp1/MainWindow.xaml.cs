@@ -31,8 +31,7 @@ public partial class MainWindow : Window
 
        
        webView.Source = new Uri("https://appassets/index.html");
-       //webView.NavigateToLocalPage("wwwroot","vanillajs", "index.html");
-       //webView.NavigateToLocalPage("wwwroot","svelte","sveltedemo","dist", "index.html");
+       
     }
 
 }
