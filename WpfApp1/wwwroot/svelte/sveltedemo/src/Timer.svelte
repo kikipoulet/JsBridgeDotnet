@@ -6,9 +6,11 @@
   let isRunning = null;
 
   onMount(async () => {
+        
       timerService = await DotnetBridge.getService('Timer');
-      isRunning = OPtoStore(timerService, 'IsRunning');
       
+      isRunning = OPtoStore(timerService, 'IsRunning');
+       
       timerService.OnTimerStopped.subscribe(() => console.log('Timer stopped!'));
   });
 
