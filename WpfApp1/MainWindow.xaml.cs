@@ -19,7 +19,8 @@ public partial class MainWindow : Window
 
     private async void InitializeAsync()
     {
-        await webView.ConfigureLocalPage("wwwroot", "svelte", "sveltedemo", "dist");
+        await webView.ConfigureLocalPage("wwwroot", "react", "reactapp", "dist");
+       // await webView.ConfigureLocalPage("wwwroot", "svelte", "sveltedemo", "dist");
         
         var serviceBridge = await webView.CreateServiceBridgeAsync();
         
