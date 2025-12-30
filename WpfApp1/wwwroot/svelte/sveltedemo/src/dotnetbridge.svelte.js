@@ -104,3 +104,88 @@ export function OPtoStore(service, propertyName) {
         update
     };
 }
+
+/**
+ * Convert an ObservableCollection from .NET to a Svelte store with reactive updates.
+ * This function:
+ * 1. Gets the initial collection from the service (calls Get{CollectionName})
+ * 2. Subscribes to collection changes (On{CollectionName}Changed)
+ * 3. Returns a readable store that automatically updates when the collection changes
+ * 4. When the collection changes, it refetches the entire collection to get the latest state
+ *
+ * @param {Object} service - The Dotnet service proxy
+ * @param {string} collectionName - The name of the collection (e.g., 'Todos')
+ * @returns {import('svelte/store').Readable} A readable store for the collection
+ *
+ * @example
+ * let todoService = null;
+ * let todos = null;
+ *
+ * onMount(async () => {
+ *     todoService = await DotnetBridge.getService('TodoList');
+ *     todos = OCtoStore(todoService, 'Todos');
+ * });
+ *
+ * // In template (use $ prefix):
+ * {#each $todos as todo (todo.id)}
+ *   <li>{todo.text}</li>
+ * {/each}
+ */
+export function OCtoStore(service, collectionName) {
+    if (!service) {
+        console.error('[OCtoStore] Service is null or undefined');
+        return writable([]);
+    }
+
+    if (!collectionName) {
+        console.error('[OCtoStore] Collection name is required');
+        return writable([]);
+    }
+
+    // Construct the getter method name (e.g., 'GetTodos')
+    const getterMethod = 'Get' + collectionName;
+
+    // Construct the event name (e.g., 'OnTodosChanged')
+    const eventName = 'On' + collectionName + 'Changed';
+
+    // Check if the getter method exists
+    if (typeof service[getterMethod] !== 'function') {
+        console.error(`[OCtoStore] Method ${getterMethod} not found on service`);
+        return writable([]);
+    }
+
+    // Create a readable store
+    const { set, subscribe } = writable([]);
+    
+    // Internal method to fetch and update the collection
+    const updateCollection = async () => {
+        try {
+            const collection = await service[getterMethod]();
+            set(collection);
+            console.log(`[OCtoStore] Collection ${collectionName} updated:`, collection.length, 'items');
+        } catch (error) {
+            console.error(`[OCtoStore] Error getting collection ${collectionName}:`, error);
+        }
+    };
+
+    // Asynchronously get the initial collection
+    updateCollection();
+
+    // Check if the event subscription interface exists
+    if (service[eventName] && typeof service[eventName].subscribe === 'function') {
+        // Subscribe to collection changes and update the store
+        const listenerId = service[eventName].subscribe(() => {
+            updateCollection();
+            console.log(`[OCtoStore] Collection ${collectionName} changed, refreshing...`);
+        });
+
+        console.log(`[OCtoStore] Subscribed to ${eventName} with listener ID:`, listenerId);
+    } else {
+        console.warn(`[OCtoStore] Event ${eventName} not found or does not have subscribe method`);
+    }
+
+    // Return the readable store
+    return {
+        subscribe
+    };
+}

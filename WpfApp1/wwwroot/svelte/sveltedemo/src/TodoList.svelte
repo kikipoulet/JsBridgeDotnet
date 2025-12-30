@@ -1,30 +1,20 @@
 <script>
   import { onMount } from 'svelte';
+  import { writable } from 'svelte/store';
+  import { OCtoStore } from './dotnetbridge.svelte.js';
 
   let todoService = null;
-  let todos = [];
+  let todos = writable([]);
   let newTodo = '';
 
   onMount(async () => {
     todoService = await DotnetBridge.getService('TodoList');
-    todoService.OnTodosChanged.subscribe(() => refreshTodos());
-    await refreshTodos();
+    todos = OCtoStore(todoService, 'Todos');
   });
 
-  async function refreshTodos() {
-    todos = await todoService.GetTodos();
-  }
-
-  async function addTodo() {
-    if (newTodo.trim()) {
-      await todoService.Add(newTodo);
-      newTodo = '';
-    }
-  }
-
-  async function removeTodo(id) {
-    await todoService.Remove(id);
-  }
+  async function addTodo() { todoService.Add(newTodo); }
+  async function removeTodo(id) { await todoService.Remove(id); }
+  
 </script>
 
 <div style="max-width: 600px; margin: 50px auto; font-family: Arial, sans-serif;">
@@ -43,20 +33,14 @@
   </div>
 
   <ul style="list-style: none; padding: 0;">
-    {#each todos as todo (todo.id)}
+    {#each $todos as todo (todo.id)}
       <li style="padding: 10px; margin: 5px 0; background: #f5f5f5; display: flex; justify-content: space-between; align-items: center;">
         <span>{todo.text}</span>
-        <button 
-          on:click={() => removeTodo(todo.id)} 
-          style="background: #ff4444; color: white; border: none; padding: 5px 10px; cursor: pointer;"
-        >
+        <button on:click={() => removeTodo(todo.id)} style="background: #ff4444; color: white; border: none; padding: 5px 10px; cursor: pointer;">
           Supprimer
         </button>
       </li>
     {/each}
   </ul>
 
-  <p style="color: #888; margin-top: 20px;">
-    {todos.length} tâche{todos.length !== 1 ? 's' : ''}
-  </p>
 </div>
