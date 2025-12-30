@@ -43,7 +43,60 @@ Used by Svelte Component :
 
 ```
 
+----------------------------------------------------------------
 
+```csharp
+public partial class TodoListService : ObservableObject
+{
+    public ObservableCollection<TodoItem> Todos { get; set; } = new ObservableCollection<TodoItem>();
+
+    public void Add(string text) => ...
+    
+    public void Remove(string id) => ...
+}
+
+```
+
+Used by React Component :
+
+```javascript
+function TodoList() {
+    
+    const [todoService, setTodoService] = useState(null);
+    const [newTodo, setNewTodo] = useState('');
+    const todos = useObservableCollection(todoService, 'Todos');
+    const addTodo = async () => await todoService.Add(newTodo);
+    const removeTodo = async (id) => await todoService.Remove(id);
+    
+    useEffect(async () => {
+        const service = await window.DotnetBridge.getService('TodoList');
+        setTodoService(service);
+    }, []);
+    
+    return (
+        <div>
+            <div >
+                <input type="text" value={newTodo} />
+                <button onClick={addTodo}>
+                    Add
+                </button>
+            </div>
+
+            <ul>
+                {todos.map((todo) => (
+                    <li key={todo.id}>
+                        <span>{todo.text}</span>
+                        <button onClick={() => removeTodo(todo.id)}>
+                            Delete Item
+                        </button>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
+```
 
 # what is currently supported 
 
