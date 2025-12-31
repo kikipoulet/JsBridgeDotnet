@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import './dotnetbridge.js';
 import { useObservableCollection } from './dotnetbridge-react.js';
+import { Button, Card, Input } from '@heroui/react';
 
 function TodoList() {
   const [todoService, setTodoService] = useState(null);
@@ -16,27 +18,44 @@ function TodoList() {
   const removeTodo = async (id) => await todoService.Remove(id);
 
   return (
-    <div style={{ maxWidth: '600px', margin: '50px auto', fontFamily: 'Arial, sans-serif' }}>
-      <h1>📋 Todo List</h1>
-      
-      <div style={{ margin: '20px 0' }}>
-        <input type="text" value={newTodo} placeholder="Nouvelle tâche..." style={{ padding: '8px', width: '60%', marginRight: '10px' }}/>
-        <button onClick={addTodo} style={{ padding: '8px 16px', cursor: 'pointer' }}>
-          Ajouter
-        </button>
-      </div>
+    <Card className="w-full">
+      <Card.Header>
+        <Card.Title>📋 Todo List</Card.Title>
+      </Card.Header>
+      <Card.Content className="space-y-4">
+        <div className="flex gap-2">
+          <Input
+            value={newTodo}
+            onChange={(e) => setNewTodo(e.target.value)}
+            placeholder="Nouvelle tâche..."
+            className="flex-1"
+            aria-label="Nouvelle tâche"
+          />
+          <Button variant="primary" onPress={addTodo}>
+            Ajouter
+          </Button>
+        </div>
 
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        {todos.map((todo) => (
-          <li key={todo.id} style={{padding: '10px', margin: '5px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <span>{todo.text}</span>
-            <button onClick={() => removeTodo(todo.id)} style={{background: '#ff4444', color: 'white', border: 'none', padding: '5px 10px', cursor: 'pointer'}}>
-              Supprimer
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
+        <AnimatePresence mode="popLayout">
+          {todos.map((todo, index) => (
+            <motion.li
+              key={todo.id}
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 100, scale: 0.9 }}
+              transition={{ duration: 0.2, delay: index * 0.05 }}
+              layout
+              className="flex justify-between items-center p-3 bg-gray-100 dark:bg-gray-800 rounded-lg"
+            >
+              <span>{todo.text}</span>
+              <Button variant="danger" onPress={() => removeTodo(todo.id)}>
+                Supprimer
+              </Button>
+            </motion.li>
+          ))}
+        </AnimatePresence>
+      </Card.Content>
+    </Card>
   );
 }
 
