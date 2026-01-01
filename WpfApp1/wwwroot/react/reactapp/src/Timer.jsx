@@ -172,15 +172,17 @@ function Timer() {
             
           </motion.div>
 
-          <AnimatePresence>
-            {running && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="mt-8"
-              >
+          <div className="mt-8">
+            <AnimatePresence mode="wait">
+              {running && (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, y: 20, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, y: -20, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-hidden"
+                >
                 <motion.div
                   animate={{
                     opacity: [0.6, 0.8, 0.6]
@@ -202,8 +204,9 @@ function Timer() {
                 </motion.div>
               </motion.div>
             )}
-          </AnimatePresence>
-        </motion.div>
+            </AnimatePresence>
+          </div>
+          </motion.div>
       </motion.div>
     </div>
   );

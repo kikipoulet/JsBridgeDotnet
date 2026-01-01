@@ -105,29 +105,30 @@ function SideMenu({ currentPage, onPageChange }) {
               </Button>
           </div>
 
-        <AnimatePresence mode="wait">
-          {!isCollapsed && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ 
-                height: { duration: 0.42 },
-                opacity: { duration: 0.28 }
-              }}
-              className="flex flex-col items-center justify-center overflow-hidden px-4 gap-2"
-            >
-              <img
-                src="https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg" 
-                alt="React Logo" 
-                className="w-16 h-16"
-              />
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                React Example
-              </h2>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="px-4">
+          <AnimatePresence mode="wait">
+            {!isCollapsed && (
+              <motion.div
+                initial={{ height: 0, opacity: 0, scale: 0.2 }}
+                animate={{ height: 120, opacity: 1, scale: 1 }}
+                exit={{ height: 0, opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.42 }}
+                className="flex flex-col items-center justify-center overflow-hidden origin-center"
+              >
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg" 
+                  alt="React Logo" 
+                  className="w-16 h-16"
+                />
+                <div className="mt-2">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                    React Example
+                  </h2>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         
 
