@@ -44,18 +44,32 @@ function TodoList() {
     }
   };
 
+  const fadeUpVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 20
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: 'spring',
+        stiffness: 300,
+        damping: 24
+      }
+    }
+  };
+
   const itemVariants = {
     hidden: { 
       opacity: 0, 
       y: 20,
-      height: 0,
-      marginBottom: 0
+      height: 0
     },
     visible: {
       opacity: 1,
       y: 0,
       height: 'auto',
-      marginBottom: '0.75rem',
       transition: {
         type: 'spring',
         stiffness: 300,
@@ -67,7 +81,6 @@ function TodoList() {
       x: 100,
       scale: 0.95,
       height: 0,
-      marginBottom: 0,
       transition: {
         duration: 0.2
       }
@@ -82,7 +95,7 @@ function TodoList() {
         animate="visible"
         className="w-full max-w-2xl"
       >
-        <motion.div variants={itemVariants} className="text-center mb-8">
+        <motion.div variants={fadeUpVariants} className="text-center mb-8">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -129,7 +142,7 @@ function TodoList() {
           </motion.p>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="mb-6">
+        <motion.div variants={fadeUpVariants} className="mb-6">
           <div className="flex gap-3 w-full">
             <div className="flex-1 min-w-0">
               <Input
@@ -170,7 +183,7 @@ function TodoList() {
         </motion.div>
 
         <motion.div
-          variants={itemVariants}
+          variants={fadeUpVariants}
           className="space-y-3"
         >
           <AnimatePresence mode="popLayout">
