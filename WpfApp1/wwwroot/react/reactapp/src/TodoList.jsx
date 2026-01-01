@@ -18,10 +18,11 @@ function TodoList() {
   const removeTodo = async (id) => await todoService.Remove(id);
 
   return (
-    <Card className="w-full">
-      <Card.Header>
-        <Card.Title>📋 Todo List</Card.Title>
-      </Card.Header>
+    <div className="flex justify-center items-center h-full">
+      <Card className="w-full max-w-2xl">
+        <Card.Header>
+          <Card.Title>📋 Todo List</Card.Title>
+        </Card.Header>
       <Card.Content className="space-y-4">
         <div className="flex gap-2">
           <Input
@@ -55,7 +56,8 @@ function TodoList() {
           ))}
         </AnimatePresence>
       </Card.Content>
-    </Card>
+      </Card>
+    </div>
   );
 }
 

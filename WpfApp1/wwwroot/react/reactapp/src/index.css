@@ -4,23 +4,21 @@
 /* HeroUI v3 styles - Must be after Tailwind */
 @import "@heroui/styles";
 
-/* Custom background gradient - Light mode */
-:root {
-  --gradient-start: var(--background);
-  --gradient-end: oklch(0.9404 0.015 253.83);
-}
-
-/* Custom background gradient - Dark mode */
-.dark,
-[data-theme="dark"] {
-  --gradient-start: var(--background);
-  --gradient-end: oklch(0.18 0.01 253.83);
-}
-
-/* Apply gradient to body */
-body {
-  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
-  min-height: 100vh;
+/* Reset only for layout containers, NOT for components */
+html, body, #root {
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
+}
+
+/* Apply HeroUI background color to body */
+body {
+  background: var(--background);
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
 }

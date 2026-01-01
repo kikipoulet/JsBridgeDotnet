@@ -24,9 +24,9 @@ public partial class MainWindow : Window
         
         var serviceBridge = await webView.CreateServiceBridgeAsync();
         
-        serviceBridge.RegisterSingletonService("TodoList", new TodoListService());
+       // serviceBridge.RegisterSingletonService("TodoList", new TodoListService());
         serviceBridge.RegisterSingletonService("Timer", new TimerService());
-       // serviceBridge.RegisterTransientService<TodoListService>("TodoList",() => new TodoListService());
+        serviceBridge.RegisterTransientService<TodoListService>("TodoList",() => new TodoListService());
        // serviceBridge.RegisterTransientService<TimerService>("Timer", () => new TimerService());
 
 
