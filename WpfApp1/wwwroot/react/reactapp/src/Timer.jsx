@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import './dotnetbridge.js';
 import { useObservableProperty } from './dotnetbridge-react.js';
-import { Button, Card } from '@heroui/react';
-import { motion } from 'framer-motion';
+import { Button } from '@heroui/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 function Timer() {
   const [timerService, setTimerService] = useState(null);
@@ -25,55 +25,186 @@ function Timer() {
     }
   };
 
+  const handleStop = async () => {
+    if (timerService) {
+      await timerService.Stop();
+    }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: 'spring',
+        stiffness: 300,
+        damping: 24
+      }
+    }
+  };
 
   return (
-    <div className="flex justify-center items-center h-full">
-      <Card className="w-full max-w-2xl">
-        <Card.Header>
-          <Card.Title>⏱️ Timer</Card.Title>
-        </Card.Header>
-        <Card.Content className="space-y-6">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center"
-          >
-            <p className={`text-2xl font-bold ${running ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
-              {running ? '⏳ En cours...' : '⏸️ Arrêté'}
-            </p>
-          </motion.div>
-
-          <div className="flex gap-4 justify-center">
+    <div className="flex justify-center items-center h-full p-8">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="w-full max-w-md"
+      >
+        <motion.div variants={itemVariants} className="text-center">
+          <div className="relative mb-12">
             <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ 
+                scale: 1, 
+                opacity: 1,
+                boxShadow: running 
+                  ? '0 0 60px rgba(99, 102, 241, 0.3)' 
+                  : '0 0 40px rgba(0, 0, 0, 0.05)'
+              }}
+              transition={{ duration: 0.5 }}
+              className={`relative w-48 h-48 mx-auto rounded-full flex items-center justify-center transition-all duration-500 ${
+                running 
+                  ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' 
+                  : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200'
+              }`}
             >
-              <Button
-                variant="primary"
-                onPress={handleStart}
-                isDisabled={running}
-                className="font-medium"
+              <AnimatePresence mode="wait">
+                {running && (
+                  <motion.div
+                    initial={{ scale: 1 }}
+                    animate={{ 
+                      scale: [1, 1.1, 1],
+                      opacity: [0.4, 0.2, 0.4]
+                    }}
+                    transition={{ 
+                      duration: 2, 
+                      repeat: Infinity,
+                      ease: 'easeInOut'
+                    }}
+                    className="absolute inset-0 rounded-full bg-white"
+                  />
+                )}
+              </AnimatePresence>
+
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className="relative z-10"
               >
-                {running ? '⏳ Timer en cours...' : '🚀 Démarrer le Timer (3 secondes)'}
-              </Button>
+                <motion.div
+                  animate={running ? { rotate: 360 } : { rotate: 0 }}
+                  transition={{ 
+                    duration: 3, 
+                    ease: 'linear',
+                    repeat: running ? Infinity : 0
+                  }}
+                  className="text-5xl"
+                >
+                  {running ? '⏳' : '⏱️'}
+                </motion.div>
+              </motion.div>
             </motion.div>
 
-         
+            <motion.div
+              variants={itemVariants}
+              className="mt-8"
+            >
+              <motion.h2
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+                className={`text-2xl font-semibold tracking-tight mb-1 ${
+                  running 
+                    ? 'text-indigo-600 dark:text-indigo-400' 
+                    : 'text-gray-900 dark:text-gray-100'
+                }`}
+              >
+                {running ? 'Timer en cours' : 'Timer prêt'}
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.4 }}
+                className="text-sm text-gray-500 dark:text-gray-400"
+              >
+                {running ? '3 secondes restantes' : 'Prêt à démarrer'}
+              </motion.p>
+            </motion.div>
           </div>
 
-          {running && (
+          <motion.div
+            variants={itemVariants}
+            className="flex gap-4 justify-center"
+          >
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-center"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
             >
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Le timer s'exécute en arrière-plan...
-              </p>
+              <Button
+                variant={running ? 'ghost' : 'primary'}
+                onPress={handleStart}
+                isDisabled={running}
+                className={`min-w-[140px] font-medium transition-all duration-300 ${
+                  running 
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : 'hover:shadow-lg'
+                }`}
+                size="lg"
+              >
+                Démarrer
+              </Button>
             </motion.div>
-          )}
-        </Card.Content>
-      </Card>
+            
+          </motion.div>
+
+          <AnimatePresence>
+            {running && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="mt-8"
+              >
+                <motion.div
+                  animate={{
+                    opacity: [0.6, 0.8, 0.6]
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: 'easeInOut'
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 text-sm font-medium"
+                >
+                  <motion.span
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  >
+                    ⚡
+                  </motion.span>
+                  <span>Exécution en cours...</span>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

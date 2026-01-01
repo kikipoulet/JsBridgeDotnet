@@ -1,6 +1,5 @@
 import TodoList from './TodoList.jsx';
-import Settings from './Settings.jsx';
-import Stats from './Stats.jsx';
+
 import Timer from './Timer.jsx';
 
 export const PAGES = {
