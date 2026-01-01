@@ -1,6 +1,7 @@
 import TodoList from './TodoList.jsx';
 import Settings from './Settings.jsx';
 import Stats from './Stats.jsx';
+import Timer from './Timer.jsx';
 
 export const PAGES = {
   todo: {
@@ -9,18 +10,13 @@ export const PAGES = {
     label: 'TodoList',
     icon: '📋'
   },
-  settings: {
-    id: 'settings',
-    component: Settings,
-    label: 'Paramètres',
-    icon: '⚙️'
+  timer: {
+    id: 'timer',
+    component: Timer,
+    label: 'Timer',
+    icon: '⏱️'
   },
-  stats: {
-    id: 'stats',
-    component: Stats,
-    label: 'Statistiques',
-    icon: '📊'
-  }
+
 };
 
-export const DEFAULT_PAGE = 'stats';
+export const DEFAULT_PAGE = 'todo';
