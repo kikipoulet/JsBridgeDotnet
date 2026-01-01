@@ -9,9 +9,13 @@ function TodoList() {
   const [newTodo, setNewTodo] = useState('');
   const todos = useObservableCollection(todoService, 'Todos');
 
-  useEffect(async () => {
-    const service = await window.DotnetBridge.getService('TodoList');
-    setTodoService(service);
+  useEffect(() => {
+    const initService = async () => {
+      const service = await window.DotnetBridge.getService('TodoList');
+      setTodoService(service);
+    };
+
+    initService();
   }, []);
 
   const addTodo = async () => await todoService.Add(newTodo);
