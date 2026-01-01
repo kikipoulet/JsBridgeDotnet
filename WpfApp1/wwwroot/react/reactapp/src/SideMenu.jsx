@@ -145,9 +145,10 @@ function SideMenu({ currentPage, onPageChange }) {
         <ul className="space-y-2 list-none">
           {menuItems.map((item, index) => (
             <li key={item.id}>
-              <button
+              <motion.button
+                layout
                 onClick={() => onPageChange(item.id)}
-                className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} gap-3 px-4 py-3 rounded-full transition-all duration-200 font-medium border-0 cursor-pointer text-left m-0 ${
+                className={`flex items-center justify-start gap-3 px-4 py-3 rounded-full transition-all duration-200 font-medium border-0 cursor-pointer m-0 ${
                   currentPage === item.id
                     ? 'bg-accent text-white shadow-md hover:opacity-90'
                     : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -158,21 +159,9 @@ function SideMenu({ currentPage, onPageChange }) {
                   boxSizing: 'border-box',
                 }}
               >
-                <motion.span
-                  key={`icon-${item.id}-${collapseCounter}`}
-                  initial={{ opacity: 1, scale: 1 }}
-                  animate={{ 
-                    opacity: [1, 0, 0, 1],
-                    scale: [1, 0.5, 0.5, 1]
-                  }}
-                  transition={{ 
-                    duration: 1.05,
-                    times: [0, 0.3, 0.6, 1]
-                  }}
-                  className="text-xl"
-                >
+                <span className="text-xl">
                   {item.icon}
-                </motion.span>
+                </span>
                 <AnimatePresence mode="wait">
                   {!isCollapsed && (
                     <motion.span
@@ -185,7 +174,7 @@ function SideMenu({ currentPage, onPageChange }) {
                     </motion.span>
                   )}
                 </AnimatePresence>
-              </button>
+              </motion.button>
             </li>
           ))}
         </ul>
