@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 function Timer() {
   const [timerService, setTimerService] = useState(null);
-  const [isRunning, setIsRunning] = useState(null);
+  const [running, setRunning] = useObservableProperty(timerService, 'IsRunning');
 
   useEffect(() => {
     const initService = async () => {
@@ -17,7 +17,8 @@ function Timer() {
     initService();
   }, []);
 
-  const [running, setRunning] = useObservableProperty(timerService, 'IsRunning');
+
+
 
   const handleStart = async () => {
     if (timerService) {
@@ -57,6 +58,7 @@ function Timer() {
 
   return (
     <div className="flex justify-center items-center h-full p-8">
+     
       <motion.div
         variants={containerVariants}
         initial="hidden"

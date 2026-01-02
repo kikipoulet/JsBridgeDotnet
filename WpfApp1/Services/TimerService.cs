@@ -13,6 +13,7 @@ public partial class TimerService : ObservableObject
     
     public void Start()
     {
+        Console.WriteLine(Name);
         if (_timer != null)
         {
             _timer.Stop();
@@ -49,4 +50,9 @@ public partial class TimerService : ObservableObject
     {
         TimerStopped?.Invoke(this, EventArgs.Empty);
     }
+
+    [ObservableProperty] private string name = "";
+    
+    
+    
 }
