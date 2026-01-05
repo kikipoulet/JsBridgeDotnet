@@ -61,7 +61,12 @@ namespace JsBridgeDotnet.Core
         /// <summary>
         /// Définition de la valeur d'une propriété depuis JavaScript
         /// </summary>
-        SetProperty = 10
+        SetProperty = 10,
+
+        /// <summary>
+        /// Log de debug pour le panel de debug
+        /// </summary>
+        DebugLog = 11
     }
 
     /// <summary>
@@ -184,5 +189,133 @@ namespace JsBridgeDotnet.Core
         public string[] Events { get; set; }
         public PropertyMetadata[] Properties { get; set; }
         public bool SupportsPropertyChanged { get; set; }
+    }
+
+    /// <summary>
+    /// Direction du message pour le debug
+    /// </summary>
+    public enum MessageDirection
+    {
+        /// <summary>
+        /// Message envoyé de C# vers JavaScript
+        /// </summary>
+        CSharpToJavaScript,
+
+        /// <summary>
+        /// Message reçu de JavaScript vers C#
+        /// </summary>
+        JavaScriptToCSharp
+    }
+
+    /// <summary>
+    /// Entrée de log de debug pour le panel de debug
+    /// </summary>
+    public class DebugLogEntry
+    {
+        /// <summary>
+        /// Direction du message (C# → JS ou JS → C#)
+        /// </summary>
+        public MessageDirection Direction { get; set; }
+
+        /// <summary>
+        /// Type du message
+        /// </summary>
+        public MessageType Type { get; set; }
+
+        /// <summary>
+        /// Nom du service concerné
+        /// </summary>
+        public string ServiceName { get; set; }
+
+        /// <summary>
+        /// Nom de la méthode ou de l'événement
+        /// </summary>
+        public string MethodName { get; set; }
+
+        /// <summary>
+        /// Message descriptif
+        /// </summary>
+        public string Message { get; set; }
+
+        /// <summary>
+        /// Paramètres de la méthode
+        /// </summary>
+        public object[] Parameters { get; set; }
+
+        /// <summary>
+        /// Résultat de l'opération
+        /// </summary>
+        public object Result { get; set; }
+
+        /// <summary>
+        /// Message d'erreur si applicable
+        /// </summary>
+        public string Error { get; set; }
+
+        /// <summary>
+        /// Horodatage du log
+        /// </summary>
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+
+        /// <summary>
+        /// Durée de l'opération (pour les appels de méthode)
+        /// </summary>
+        public TimeSpan? Duration { get; set; }
+
+        /// <summary>
+        /// Identifiant unique du message pour la corrélation
+        /// </summary>
+        public string MessageId { get; set; }
+
+        /// <summary>
+        /// Identifiant d'instance (pour les services transients)
+        /// </summary>
+        public string InstanceId { get; set; }
+    }
+
+    /// <summary>
+    /// Informations de debug pour un service
+    /// </summary>
+    public class ServiceDebugInfo
+    {
+        /// <summary>
+        /// Nom du service
+        /// </summary>
+        public string ServiceName { get; set; }
+
+        /// <summary>
+        /// Type du service
+        /// </summary>
+        public string ServiceType { get; set; }
+
+        /// <summary>
+        /// Cycle de vie (Singleton ou Transient)
+        /// </summary>
+        public string Lifetime { get; set; }
+
+        /// <summary>
+        /// Métadonnées des méthodes disponibles
+        /// </summary>
+        public MethodMetadata[] Methods { get; set; }
+
+        /// <summary>
+        /// Liste des événements disponibles
+        /// </summary>
+        public string[] Events { get; set; }
+
+        /// <summary>
+        /// Métadonnées des propriétés disponibles
+        /// </summary>
+        public PropertyMetadata[] Properties { get; set; }
+
+        /// <summary>
+        /// Indique si le service supporte INotifyPropertyChanged
+        /// </summary>
+        public bool SupportsPropertyChanged { get; set; }
+
+        /// <summary>
+        /// Identifiant d'instance (null pour les singletons, rempli pour les transients)
+        /// </summary>
+        public string InstanceId { get; set; }
     }
 }

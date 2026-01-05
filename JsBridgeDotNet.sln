@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsBridgeDotnet", "JsBridgeD
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsBridgeDotnet.WebView2", "JsBridgeDotnet.WebView2Handler\JsBridgeDotnet.WebView2.csproj", "{B913E622-C23C-4AF2-B42F-455437774680}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsBridgeDotnet.WPF", "JsBridgeDotnet.WPF\JsBridgeDotnet.WPF.csproj", "{B2B10617-CA22-4FF7-A63E-DF195CF0BA52}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{B913E622-C23C-4AF2-B42F-455437774680}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B913E622-C23C-4AF2-B42F-455437774680}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B913E622-C23C-4AF2-B42F-455437774680}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2B10617-CA22-4FF7-A63E-DF195CF0BA52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2B10617-CA22-4FF7-A63E-DF195CF0BA52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2B10617-CA22-4FF7-A63E-DF195CF0BA52}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2B10617-CA22-4FF7-A63E-DF195CF0BA52}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

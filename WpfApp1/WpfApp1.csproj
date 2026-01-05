@@ -24,7 +24,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\JsBridgeDotnet.WebView2Handler\JsBridgeDotnet.WebView2.csproj" />
+      <ProjectReference Include="..\JsBridgeDotnet.WPF\JsBridgeDotnet.WPF.csproj" />
     </ItemGroup>
 
 </Project>
