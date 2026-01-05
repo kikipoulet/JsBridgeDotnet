@@ -6,20 +6,8 @@
              xmlns:Wpf="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-        <!-- WebView2 avec une bordure optionnelle -->
-        <Border BorderBrush="Gray" BorderThickness="1">
-            <Wpf:WebView2 x:Name="webView"/>
-        </Border>
-        
-        <!-- Bouton de debug (visible seulement en DEBUG, placeholder pour futur panel) -->
-        <Button x:Name="debugButton" 
-                Content="🔧 Debug" 
-                Width="60" Height="30" 
-                HorizontalAlignment="Right" 
-                VerticalAlignment="Top"
-                Margin="5"
-                Click="OnDebugButtonClick"
-                Visibility="Collapsed"/>
+    <Grid >
+        <!-- WebView2 -->
+        <Wpf:WebView2 x:Name="webView"/>
     </Grid>
 </UserControl>

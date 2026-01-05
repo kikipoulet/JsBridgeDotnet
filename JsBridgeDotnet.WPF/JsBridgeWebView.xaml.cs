@@ -5,6 +5,7 @@ using System;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace JsBridgeDotnet.WPF
 {
@@ -16,6 +17,10 @@ namespace JsBridgeDotnet.WPF
     {
         private ServiceBridge? _serviceBridge;
         private bool _isInitialized;
+#if DEBUG
+        private Window? _debugWindow;
+        private DebugPanel? _debugPanel;
+#endif
 
         /// <summary>
         /// Obtient le ServiceBridge pour enregistrer des services
@@ -49,8 +54,8 @@ namespace JsBridgeDotnet.WPF
             InitializeComponent();
             
 #if DEBUG
-            // Afficher le bouton de debug seulement en mode DEBUG
-            debugButton.Visibility = Visibility.Visible;
+            // Activer la capture des touches clavier pour F10
+            KeyDown += OnKeyDown;
 #endif
         }
 
@@ -87,14 +92,60 @@ namespace JsBridgeDotnet.WPF
             await webView.ConfigureLocalPage(pathComponents);
         }
 
+#if DEBUG
         /// <summary>
-        /// Handler pour le clic sur le bouton de debug
-        /// Placeholder pour l'étape 5 (création du Debug Panel)
+        /// Handler pour la touche F10
+        /// Ouvre une fenêtre avec le Debug Panel
         /// </summary>
-        private void OnDebugButtonClick(object sender, RoutedEventArgs e)
+        private void OnKeyDown(object sender, KeyEventArgs e)
         {
-            // TODO: Étape 5 - Ouvrir le Debug Panel
-            MessageBox.Show("Debug Panel - Coming Soon!", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (e.Key == Key.F10)
+            {
+                OpenDebugWindow();
+            }
         }
+
+        /// <summary>
+        /// Ouvre la fenêtre de debug
+        /// </summary>
+        private void OpenDebugWindow()
+        {
+            if (_debugWindow == null)
+            {
+                // Créer le DebugPanel avec le ServiceBridge
+                _debugPanel = new DebugPanel(_serviceBridge!);
+                
+                // Créer une fenêtre pour héberger le DebugPanel
+                _debugWindow = new Window
+                {
+                    Title = "Debug Panel - JsBridge (F10)",
+                    Width = 900,
+                    Height = 600,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    ResizeMode = ResizeMode.CanResize,
+                    Content = _debugPanel
+                };
+                
+                // Se désabonner quand la fenêtre se ferme
+                _debugWindow.Closed += OnDebugWindowClosed;
+                
+                _debugWindow.Show();
+            }
+            else
+            {
+                // Si la fenêtre existe déjà, la focus
+                _debugWindow.Focus();
+            }
+        }
+
+        /// <summary>
+        /// Handler appelé quand la fenêtre de debug se ferme
+        /// </summary>
+        private void OnDebugWindowClosed(object? sender, EventArgs e)
+        {
+            _debugWindow = null;
+            _debugPanel = null;
+        }
+#endif
     }
 }
