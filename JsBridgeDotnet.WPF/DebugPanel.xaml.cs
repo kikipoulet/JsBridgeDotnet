@@ -67,7 +67,7 @@ namespace JsBridgeDotnet.WPF
             _serviceBridge.MethodCompleted += OnMethodCompleted;
             _serviceBridge.EventFired += OnEventFired;
             _serviceBridge.ErrorOccurred += OnErrorOccurred;
-            
+
             // S'abonner à l'événement Unloaded pour nettoyer les ressources
             Unloaded += (sender, args) =>
             {

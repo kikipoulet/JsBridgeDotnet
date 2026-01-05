@@ -495,6 +495,7 @@ let DotnetBridge = (function() {
     }
     
   initializeMessageListener();
+   
   
   const bridge = {
     getService,

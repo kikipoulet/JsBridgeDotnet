@@ -50,6 +50,14 @@
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
                 
+                <!-- Source -->
+                <DataGridTextColumn Header="Source" 
+                                    Binding="{Binding Source}" 
+                                    Width="80"
+                                    IsReadOnly="True"
+                                    Foreground="Gray"
+                                    FontWeight="Bold"/>
+                
                 <!-- Type -->
                 <DataGridTextColumn Header="Type" 
                                     Binding="{Binding Type}" 

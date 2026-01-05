@@ -133,6 +133,11 @@ namespace JsBridgeDotnet.Core
         /// Indique si l'opération a réussi
         /// </summary>
         public bool Success { get; set; }
+
+        /// <summary>
+        /// Données supplémentaires (pour les logs de debug JavaScript)
+        /// </summary>
+        public object Data { get; set; }
     }
 
     /// <summary>

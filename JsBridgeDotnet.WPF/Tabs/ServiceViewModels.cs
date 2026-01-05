@@ -133,7 +133,7 @@ namespace JsBridgeDotnet.WPF.Tabs
         public string Type { get; set; }
         public ObservableCollection<ITreeNode> Children { get; set; }
 
-        public string DisplayName => $"  {Name}: {Type}";
+        public string DisplayName => $"{Name}: {Type}";
 
         public ParameterNode(ParameterMetadata param)
         {
@@ -154,7 +154,7 @@ namespace JsBridgeDotnet.WPF.Tabs
         public bool IsObservableCollection { get; set; }
         public ObservableCollection<ITreeNode> Children { get; set; }
 
-        public string DisplayName => $"{Name}: {Type} = {FormatValue()}";
+        public string DisplayName => $"{Name}: {FormatValue()}";
 
         public PropertyNode(PropertyMetadata property)
         {
@@ -291,6 +291,11 @@ namespace JsBridgeDotnet.WPF.Tabs
         public Brush Color { get; set; }
 
         /// <summary>
+        /// Source du log (C# ou JavaScript)
+        /// </summary>
+        public string Source { get; set; }
+
+        /// <summary>
         /// Constructeur depuis un DebugLogEntry
         /// </summary>
         public LogEntry(DebugLogEntry entry)
@@ -307,6 +312,67 @@ namespace JsBridgeDotnet.WPF.Tabs
             
             // Définir la couleur en fonction du type
             Color = GetColorByType(entry.Type);
+            Source = "C#";
+        }
+
+        /// <summary>
+        /// Constructeur depuis un DebugLog côté JavaScript
+        /// </summary>
+        public LogEntry(object debugData, DateTime timestamp)
+        {
+            Timestamp = timestamp;
+            Direction = "JS → C#";
+            Type = "Debug";
+            ServiceName = string.Empty;
+            MethodName = string.Empty;
+            
+            // Extraire les données du log JavaScript
+            if (debugData is System.Text.Json.JsonElement json)
+            {
+                Type = json.TryGetProperty("type", out var typeElement) ? typeElement.GetString() : "console.log";
+                
+                // Extraire le niveau de log
+                string level = "info";
+                if (json.TryGetProperty("level", out var levelElement))
+                {
+                    level = levelElement.GetString() ?? "info";
+                }
+                
+                // Extraire le message
+                string message = string.Empty;
+                if (json.TryGetProperty("message", out var messageElement))
+                {
+                    message = messageElement.GetString() ?? string.Empty;
+                }
+                
+                Message = message;
+                
+                // Couleur selon le niveau de log
+                Color = level switch
+                {
+                    "error" => new SolidColorBrush(Colors.Red),
+                    "warning" => new SolidColorBrush(Colors.Orange),
+                    _ => new SolidColorBrush(Colors.Blue)
+                };
+            }
+            else if (debugData != null)
+            {
+                // Fallback si debugData n'est pas un JsonElement
+                Type = "console.log";
+                Message = debugData.ToString();
+                Color = new SolidColorBrush(Colors.Blue);
+            }
+            else
+            {
+                Type = "console.log";
+                Message = string.Empty;
+                Color = new SolidColorBrush(Colors.Blue);
+            }
+            
+            Result = string.Empty;
+            Error = string.Empty;
+            Duration = string.Empty;
+            Source = "JavaScript";
         }
 
         /// <summary>

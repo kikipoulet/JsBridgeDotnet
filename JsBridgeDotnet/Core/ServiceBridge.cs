@@ -48,7 +48,7 @@ namespace JsBridgeDotnet.Core
         private readonly Dictionary<string, ServiceRegistrationInfo> _serviceRegistrations;
         private readonly ConcurrentDictionary<string, Action<object>> _pendingCalls;
         private readonly Dictionary<(string service, string eventName, string instanceId), EventSubscription> _eventSubscriptions;
-        private readonly JsonSerializerOptions _jsonOptions;
+        public readonly JsonSerializerOptions _jsonOptions;
         private bool _isDisposed;
 
 #if DEBUG
@@ -1044,6 +1044,7 @@ namespace JsBridgeDotnet.Core
             }
         }
 
+        /// <summary>
         /// <summary>
         /// Gère les abonnements aux événements depuis JavaScript
         /// </summary>

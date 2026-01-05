@@ -16,6 +16,7 @@ namespace JsBridgeDotnet.WPF
     public partial class JsBridgeWebView : UserControl
     {
         private ServiceBridge? _serviceBridge;
+        private IWebMessageHandler? _messageHandler;
         private bool _isInitialized;
 #if DEBUG
         private Window? _debugWindow;
@@ -72,11 +73,11 @@ namespace JsBridgeDotnet.WPF
 
             // Créer le message handler pour la WebView2 interne
             // Note: CoreWebView2 doit déjà être initialisé par ConfigureLocalPage
-            var messageHandler = new WebView2MessageHandler(webView);
-            await messageHandler.InitializeAsync();
+            _messageHandler = new WebView2MessageHandler(webView);
+            await _messageHandler.InitializeAsync();
 
             // Créer et stocker le ServiceBridge
-            _serviceBridge = new ServiceBridge(messageHandler);
+            _serviceBridge = new ServiceBridge(_messageHandler);
             _isInitialized = true;
         }
 
