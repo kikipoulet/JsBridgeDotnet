@@ -14,6 +14,7 @@ namespace JsBridgeDotnet.WPF
 #if DEBUG
         private readonly ServiceBridge _serviceBridge;
         private readonly ServicesTab _servicesTab;
+        private readonly InstancesTab _instancesTab;
         private readonly DispatcherTimer _refreshTimer;
 
         /// <summary>
@@ -31,6 +32,13 @@ namespace JsBridgeDotnet.WPF
 
             // Injecter le ServicesTab dans le TabItem "Services"
             servicesTab.Content = _servicesTab;
+
+            // Créer et initialiser le InstancesTab
+            _instancesTab = new InstancesTab();
+            _instancesTab.SetServiceBridge(_serviceBridge);
+
+            // Injecter le InstancesTab dans le TabItem "Instances"
+            instancesTab.Content = _instancesTab;
 
             // Charger les services existants
             RefreshServices();
@@ -68,6 +76,7 @@ namespace JsBridgeDotnet.WPF
             {
                 var services = _serviceBridge.GetRegisteredServices();
                 _servicesTab.UpdateServices(services);
+                _instancesTab.UpdateInstances(services);
             }
             catch (Exception ex)
             {

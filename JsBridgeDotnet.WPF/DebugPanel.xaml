@@ -12,7 +12,7 @@
                 <!-- Le ServicesTab sera injecté par le code-behind -->
             </TabItem>
             <TabItem Header="Services Instances" Name="instancesTab">
-                <TextBlock Text="Coming soon..." HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray"/>
+                <!-- Le InstancesTab sera injecté par le code-behind -->
             </TabItem>
             <TabItem Header="Logs" Name="logsTab">
                 <TextBlock Text="Coming soon..." HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray"/>

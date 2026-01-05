@@ -192,4 +192,45 @@ namespace JsBridgeDotnet.WPF.Tabs
             Children = new ObservableCollection<ITreeNode>();
         }
     }
+
+    /// <summary>
+    /// Représente une instance de service pour le tab Instances
+    /// </summary>
+    public class InstanceNode
+    {
+        /// <summary>
+        /// Nom du service
+        /// </summary>
+        public string ServiceName { get; set; }
+
+        /// <summary>
+        /// Type complet du service
+        /// </summary>
+        public string ServiceType { get; set; }
+
+        /// <summary>
+        /// ID de l'instance (null pour singleton, UUID pour transient)
+        /// </summary>
+        public string InstanceId { get; set; }
+
+        /// <summary>
+        /// Cycle de vie
+        /// </summary>
+        public string Lifetime { get; set; }
+
+        /// <summary>
+        /// Statut de l'instance
+        /// </summary>
+        public string Status { get; set; }
+
+        /// <summary>
+        /// Indique si l'instance peut être supprimée (uniquement les transients)
+        /// </summary>
+        public bool CanKill => Lifetime == "Transient";
+
+        /// <summary>
+        /// Affichage compact de l'ID
+        /// </summary>
+        public string DisplayInstanceId => string.IsNullOrEmpty(InstanceId) ? "N/A" : $"{InstanceId.Substring(0, 8)}...";
+    }
 }
