@@ -1,6 +1,7 @@
 using JsBridgeDotnet.Core;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows.Media;
 
 namespace JsBridgeDotnet.WPF.Tabs
 {
@@ -232,5 +233,95 @@ namespace JsBridgeDotnet.WPF.Tabs
         /// Affichage compact de l'ID
         /// </summary>
         public string DisplayInstanceId => string.IsNullOrEmpty(InstanceId) ? "N/A" : $"{InstanceId.Substring(0, 8)}...";
+    }
+
+    /// <summary>
+    /// Représente une entrée de log pour le tab Logs
+    /// </summary>
+    public class LogEntry
+    {
+        /// <summary>
+        /// Timestamp de l'événement
+        /// </summary>
+        public DateTime Timestamp { get; set; }
+
+        /// <summary>
+        /// Direction de communication (C# → JS ou JS → C#)
+        /// </summary>
+        public string Direction { get; set; }
+
+        /// <summary>
+        /// Type de log (Message, MethodCalled, MethodCompleted, EventFired, Error)
+        /// </summary>
+        public string Type { get; set; }
+
+        /// <summary>
+        /// Nom du service concerné (optionnel)
+        /// </summary>
+        public string ServiceName { get; set; }
+
+        /// <summary>
+        /// Nom de la méthode ou de l'événement (optionnel)
+        /// </summary>
+        public string MethodName { get; set; }
+
+        /// <summary>
+        /// Message ou paramètres
+        /// </summary>
+        public string Message { get; set; }
+
+        /// <summary>
+        /// Résultat de la méthode (si applicable)
+        /// </summary>
+        public string Result { get; set; }
+
+        /// <summary>
+        /// Message d'erreur (si applicable)
+        /// </summary>
+        public string Error { get; set; }
+
+        /// <summary>
+        /// Durée en millisecondes (pour les appels de méthode)
+        /// </summary>
+        public string Duration { get; set; }
+
+        /// <summary>
+        /// Couleur pour le style visuel
+        /// </summary>
+        public Brush Color { get; set; }
+
+        /// <summary>
+        /// Constructeur depuis un DebugLogEntry
+        /// </summary>
+        public LogEntry(DebugLogEntry entry)
+        {
+            Timestamp = entry.Timestamp;
+            Direction = entry.Direction == MessageDirection.CSharpToJavaScript ? "C# → JS" : "JS → C#";
+            Type = entry.Type.ToString();
+            ServiceName = entry.ServiceName;
+            MethodName = entry.MethodName;
+            Message = entry.Message ?? (entry.Parameters != null ? System.Text.Json.JsonSerializer.Serialize(entry.Parameters) : string.Empty);
+            Result = entry.Result != null ? System.Text.Json.JsonSerializer.Serialize(entry.Result) : string.Empty;
+            Error = entry.Error;
+            Duration = entry.Duration.HasValue ? $"{entry.Duration.Value.TotalMilliseconds:F0}ms" : string.Empty;
+            
+            // Définir la couleur en fonction du type
+            Color = GetColorByType(entry.Type);
+        }
+
+        /// <summary>
+        /// Obtient la couleur en fonction du type de log
+        /// </summary>
+        private static Brush GetColorByType(MessageType type)
+        {
+            return type switch
+            {
+                MessageType.ErrorResponse => new SolidColorBrush(Colors.Red),
+                MessageType.MethodResult => new SolidColorBrush(Colors.Green),
+                MessageType.EventFired => new SolidColorBrush(Colors.Orange),
+                MessageType.CallMethod => new SolidColorBrush(Colors.Blue),
+                _ => new SolidColorBrush(Colors.Black)
+            };
+        }
     }
 }

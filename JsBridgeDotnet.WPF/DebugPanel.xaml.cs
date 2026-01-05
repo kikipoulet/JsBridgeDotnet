@@ -15,6 +15,7 @@ namespace JsBridgeDotnet.WPF
         private readonly ServiceBridge _serviceBridge;
         private readonly ServicesTab _servicesTab;
         private readonly InstancesTab _instancesTab;
+        private readonly LogsTab _logsTab;
         private readonly DispatcherTimer _refreshTimer;
 
         /// <summary>
@@ -39,6 +40,13 @@ namespace JsBridgeDotnet.WPF
 
             // Injecter le InstancesTab dans le TabItem "Instances"
             instancesTab.Content = _instancesTab;
+
+            // Créer et initialiser le LogsTab
+            _logsTab = new LogsTab();
+            _logsTab.SetServiceBridge(_serviceBridge);
+
+            // Injecter le LogsTab dans le TabItem "Logs"
+            logsTab.Content = _logsTab;
 
             // Charger les services existants
             RefreshServices();
@@ -94,36 +102,36 @@ namespace JsBridgeDotnet.WPF
 
         /// <summary>
         /// Event handlers pour les événements de debug
-        /// (TODO: seront utilisés pour les futurs tabs Logs et Network)
+        /// Ces handlers ajoutent les logs au LogsTab
         /// </summary>
         private void OnMessageSent(DebugLogEntry entry)
         {
-            // TODO: À implémenter pour le LogsTab
+            _logsTab.AddLog(entry);
         }
 
         private void OnMessageReceived(DebugLogEntry entry)
         {
-            // TODO: À implémenter pour le LogsTab
+            _logsTab.AddLog(entry);
         }
 
         private void OnMethodCalled(DebugLogEntry entry)
         {
-            // TODO: À implémenter pour le LogsTab
+            _logsTab.AddLog(entry);
         }
 
         private void OnMethodCompleted(DebugLogEntry entry)
         {
-            // TODO: À implémenter pour le LogsTab
+            _logsTab.AddLog(entry);
         }
 
         private void OnEventFired(DebugLogEntry entry)
         {
-            // TODO: À implémenter pour le LogsTab
+            _logsTab.AddLog(entry);
         }
 
         private void OnErrorOccurred(DebugLogEntry entry)
         {
-            // TODO: À implémenter pour le LogsTab
+            _logsTab.AddLog(entry);
         }
 
         /// <summary>

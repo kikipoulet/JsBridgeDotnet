@@ -15,7 +15,7 @@
                 <!-- Le InstancesTab sera injecté par le code-behind -->
             </TabItem>
             <TabItem Header="Logs" Name="logsTab">
-                <TextBlock Text="Coming soon..." HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray"/>
+                <!-- Le LogsTab sera injecté par le code-behind -->
             </TabItem>
             <TabItem Header="Network" Name="networkTab">
                 <TextBlock Text="Coming soon..." HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray"/>

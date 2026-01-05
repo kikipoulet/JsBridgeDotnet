@@ -1,0 +1,100 @@
+<UserControl x:Class="JsBridgeDotnet.WPF.Tabs.LogsTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="900">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar avec boutons d'action -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5" Background="#f5f5f5">
+            <Button Content="🗑️ Clear Logs" Click="OnClearLogs" Margin="5,0" Padding="10,5" ToolTip="Clear all logs"/>
+            <Button Content="📋 Export Logs" Click="OnExportLogs" Margin="5,0" Padding="10,5" ToolTip="Export logs to CSV"/>
+            <TextBlock Text="{Binding Logs.Count, StringFormat='Total: {0}'}" VerticalAlignment="Center" Margin="20,5,5,5" FontWeight="Bold"/>
+        </StackPanel>
+
+        <!-- DataGrid des logs -->
+        <DataGrid Grid.Row="1" 
+                  x:Name="logsDataGrid"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  SelectionMode="Single"
+                  AlternatingRowBackground="#f9f9f9"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
+                  HorizontalGridLinesBrush="#e0e0e0"
+                  VerticalGridLinesBrush="Transparent">
+            <DataGrid.Columns>
+                <!-- Timestamp -->
+                <DataGridTextColumn Header="Timestamp" 
+                                    Binding="{Binding Timestamp, StringFormat='{}{0:HH:mm:ss.fff}'}" 
+                                    Width="100"
+                                    IsReadOnly="True"/>
+                
+                <!-- Direction -->
+                <DataGridTextColumn Header="Direction" 
+                                    Binding="{Binding Direction}" 
+                                    Width="90"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <!-- Type -->
+                <DataGridTextColumn Header="Type" 
+                                    Binding="{Binding Type}" 
+                                    Width="130"
+                                    IsReadOnly="True"
+                                    Foreground="{Binding Color}"/>
+                
+                <!-- Service -->
+                <DataGridTextColumn Header="Service" 
+                                    Binding="{Binding ServiceName}" 
+                                    Width="120"
+                                    IsReadOnly="True"/>
+                
+                <!-- Method -->
+                <DataGridTextColumn Header="Method" 
+                                    Binding="{Binding MethodName}" 
+                                    Width="120"
+                                    IsReadOnly="True"/>
+                
+                <!-- Message/Params -->
+                <DataGridTextColumn Header="Message/Params" 
+                                    Binding="{Binding Message}" 
+                                    Width="250"
+                                    IsReadOnly="True"/>
+                
+                <!-- Result -->
+                <DataGridTextColumn Header="Result" 
+                                    Binding="{Binding Result}" 
+                                    Width="150"
+                                    IsReadOnly="True"
+                                    Foreground="Green"/>
+                
+                <!-- Error -->
+                <DataGridTextColumn Header="Error" 
+                                    Binding="{Binding Error}" 
+                                    Width="200"
+                                    IsReadOnly="True"
+                                    Foreground="Red"/>
+                
+                <!-- Duration -->
+                <DataGridTextColumn Header="Duration" 
+                                    Binding="{Binding Duration}" 
+                                    Width="80"
+                                    IsReadOnly="True"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>
