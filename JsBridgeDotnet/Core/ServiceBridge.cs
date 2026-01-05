@@ -51,6 +51,38 @@ namespace JsBridgeDotnet.Core
         private readonly JsonSerializerOptions _jsonOptions;
         private bool _isDisposed;
 
+#if DEBUG
+        /// <summary>
+        /// Événement déclenché quand un message est envoyé à JavaScript
+        /// </summary>
+        public event Action<DebugLogEntry> MessageSent;
+
+        /// <summary>
+        /// Événement déclenché quand un message est reçu de JavaScript
+        /// </summary>
+        public event Action<DebugLogEntry> MessageReceived;
+
+        /// <summary>
+        /// Événement déclenché quand une méthode est appelée
+        /// </summary>
+        public event Action<DebugLogEntry> MethodCalled;
+
+        /// <summary>
+        /// Événement déclenché quand une méthode retourne un résultat
+        /// </summary>
+        public event Action<DebugLogEntry> MethodCompleted;
+
+        /// <summary>
+        /// Événement déclenché quand un événement C# est déclenché
+        /// </summary>
+        public event Action<DebugLogEntry> EventFired;
+
+        /// <summary>
+        /// Événement déclenché quand une erreur survient
+        /// </summary>
+        public event Action<DebugLogEntry> ErrorOccurred;
+#endif
+
         public ServiceBridge(IWebMessageHandler messageHandler)
         {
             _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
@@ -428,6 +460,26 @@ namespace JsBridgeDotnet.Core
         private void OnCollectionChanged(string serviceName, string collectionName, 
             System.Collections.Specialized.NotifyCollectionChangedEventArgs args, string instanceId = null)
         {
+#if DEBUG
+            EventFired?.Invoke(new DebugLogEntry
+            {
+                Direction = MessageDirection.CSharpToJavaScript,
+                Type = MessageType.EventFired,
+                ServiceName = serviceName,
+                MethodName = $"{collectionName}Changed",
+                Result = new
+                {
+                    Action = args.Action.ToString(),
+                    NewItems = args.NewItems?.Cast<object>().ToArray(),
+                    OldItems = args.OldItems?.Cast<object>().ToArray(),
+                    NewStartingIndex = args.NewStartingIndex,
+                    OldStartingIndex = args.OldStartingIndex
+                },
+                MessageId = Guid.NewGuid().ToString(),
+                InstanceId = instanceId,
+                Timestamp = DateTime.Now
+            });
+#endif
             try
             {
                 var message = new BridgeMessage
@@ -460,6 +512,19 @@ namespace JsBridgeDotnet.Core
         /// </summary>
         private void OnPropertyChangedFired(string serviceName, string propertyName, object serviceInstance, string instanceId = null)
         {
+#if DEBUG
+            EventFired?.Invoke(new DebugLogEntry
+            {
+                Direction = MessageDirection.CSharpToJavaScript,
+                Type = MessageType.PropertyChangeFired,
+                ServiceName = serviceName,
+                MethodName = propertyName,
+                Result = TryGetPropertyValue(serviceInstance, serviceInstance.GetType().GetProperty(propertyName)),
+                MessageId = Guid.NewGuid().ToString(),
+                InstanceId = instanceId,
+                Timestamp = DateTime.Now
+            });
+#endif
             try
             {
                 var propertyInfo = serviceInstance.GetType().GetProperty(propertyName);
@@ -560,6 +625,19 @@ namespace JsBridgeDotnet.Core
         /// </summary>
         private void OnServiceEventFired(string serviceName, string eventName, object eventArgs, string instanceId = null)
         {
+#if DEBUG
+            EventFired?.Invoke(new DebugLogEntry
+            {
+                Direction = MessageDirection.CSharpToJavaScript,
+                Type = MessageType.EventFired,
+                ServiceName = serviceName,
+                MethodName = eventName,
+                Result = eventArgs,
+                MessageId = Guid.NewGuid().ToString(),
+                InstanceId = instanceId,
+                Timestamp = DateTime.Now
+            });
+#endif
             try
             {
                 var message = new BridgeMessage
@@ -586,6 +664,15 @@ namespace JsBridgeDotnet.Core
         /// </summary>
         private void OnWebMessageReceived(object sender, string messageJson)
         {
+#if DEBUG
+            MessageReceived?.Invoke(new DebugLogEntry
+            {
+                Direction = MessageDirection.JavaScriptToCSharp,
+                Type = MessageType.DebugLog,
+                Message = "Message received from JavaScript",
+                Timestamp = DateTime.Now
+            });
+#endif
             try
             {
                 var message = JsonSerializer.Deserialize<BridgeMessage>(messageJson, _jsonOptions);
@@ -772,6 +859,20 @@ namespace JsBridgeDotnet.Core
         /// </summary>
         private void HandleMethodCall(BridgeMessage message)
         {
+#if DEBUG
+            var startTime = DateTime.Now;
+            MethodCalled?.Invoke(new DebugLogEntry
+            {
+                Direction = MessageDirection.JavaScriptToCSharp,
+                Type = MessageType.CallMethod,
+                ServiceName = message.ServiceName,
+                MethodName = message.MethodName,
+                Parameters = message.Parameters,
+                MessageId = message.MessageId,
+                InstanceId = message.InstanceId,
+                Timestamp = startTime
+            });
+#endif
             try
             {
                 Console.WriteLine($"[C#] HandleMethodCall - Service: {message.ServiceName}, Method: {message.MethodName}, MessageId: {message.MessageId}");
@@ -803,6 +904,22 @@ namespace JsBridgeDotnet.Core
                 var result = methodInfo.Invoke(service, parameters);
                 Console.WriteLine($"[C#] Method result: {result}");
 
+#if DEBUG
+                var endTime = DateTime.Now;
+                var duration = endTime - startTime;
+                MethodCompleted?.Invoke(new DebugLogEntry
+                {
+                    Direction = MessageDirection.CSharpToJavaScript,
+                    Type = MessageType.MethodResult,
+                    ServiceName = message.ServiceName,
+                    MethodName = message.MethodName,
+                    Result = result,
+                    MessageId = message.MessageId,
+                    InstanceId = message.InstanceId,
+                    Timestamp = endTime,
+                    Duration = duration
+                });
+#endif
                 // Envoyer le résultat
                 var responseMessage = new BridgeMessage
                 {
@@ -1006,6 +1123,20 @@ namespace JsBridgeDotnet.Core
             if (_isDisposed)
                 return;
 
+#if DEBUG
+            MessageSent?.Invoke(new DebugLogEntry
+            {
+                Direction = MessageDirection.CSharpToJavaScript,
+                Type = message.Type,
+                ServiceName = message.ServiceName,
+                MethodName = message.MethodName,
+                Result = message.Result,
+                Error = message.Error,
+                MessageId = message.MessageId,
+                InstanceId = message.InstanceId,
+                Timestamp = DateTime.Now
+            });
+#endif
             try
             {
                 var jsonMessage = JsonSerializer.Serialize(message, _jsonOptions);
@@ -1025,6 +1156,16 @@ namespace JsBridgeDotnet.Core
         /// </summary>
         private void SendErrorResponse(string messageId, string error)
         {
+#if DEBUG
+            ErrorOccurred?.Invoke(new DebugLogEntry
+            {
+                Direction = MessageDirection.CSharpToJavaScript,
+                Type = MessageType.ErrorResponse,
+                Error = error,
+                MessageId = messageId,
+                Timestamp = DateTime.Now
+            });
+#endif
             var errorMessage = new BridgeMessage
             {
                 MessageId = messageId,
@@ -1035,6 +1176,131 @@ namespace JsBridgeDotnet.Core
 
             SendMessageToJavaScript(errorMessage);
         }
+
+#if DEBUG
+        /// <summary>
+        /// Retourne les métadonnées de tous les services enregistrés
+        /// </summary>
+        public IEnumerable<ServiceDebugInfo> GetRegisteredServices()
+        {
+            var result = new List<ServiceDebugInfo>();
+
+            foreach (var kvp in _serviceRegistrations)
+            {
+                var serviceName = kvp.Key;
+                var registrationInfo = kvp.Value;
+
+                if (registrationInfo.Lifetime == ServiceLifetime.Singleton)
+                {
+                    // Singleton : une seule entrée sans instanceId
+                    var serviceInstance = registrationInfo.SingletonInstance;
+                    result.Add(new ServiceDebugInfo
+                    {
+                        ServiceName = serviceName,
+                        ServiceType = serviceInstance.GetType().FullName,
+                        Lifetime = "Singleton",
+                        Methods = serviceInstance.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                            .Where(m => !m.IsSpecialName && m.DeclaringType != typeof(object) && !m.IsGenericMethod)
+                            .Select(m => new MethodMetadata
+                            {
+                                Name = m.Name,
+                                Parameters = m.GetParameters().Select(p => new ParameterMetadata
+                                {
+                                    Name = p.Name,
+                                    Type = GetSimpleTypeName(p.ParameterType)
+                                }).ToArray(),
+                                ReturnType = GetSimpleTypeName(m.ReturnType)
+                            }).ToArray(),
+                        Events = serviceInstance.GetType().GetEvents(BindingFlags.Public | BindingFlags.Instance)
+                            .Where(e => e.DeclaringType != typeof(object) && e.Name != "PropertyChanged")
+                            .Select(e => e.Name).ToArray(),
+                        Properties = serviceInstance.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                            .Where(p => p.DeclaringType != typeof(object) && p.GetIndexParameters().Length == 0 && p.CanRead)
+                            .Select(p => new PropertyMetadata
+                            {
+                                Name = p.Name,
+                                Type = GetSimpleTypeName(p.PropertyType),
+                                Value = TryGetPropertyValue(serviceInstance, p),
+                                IsObservableCollection = typeof(System.Collections.Specialized.INotifyCollectionChanged).IsAssignableFrom(p.PropertyType)
+                            }).ToArray(),
+                        SupportsPropertyChanged = typeof(System.ComponentModel.INotifyPropertyChanged).IsAssignableFrom(serviceInstance.GetType()),
+                        InstanceId = null
+                    });
+                }
+                else
+                {
+                    // Transient : une entrée par instance active
+                    foreach (var instanceKvp in registrationInfo.TransientInstances)
+                    {
+                        if (instanceKvp.Value.TryGetTarget(out var serviceInstance))
+                        {
+                            result.Add(new ServiceDebugInfo
+                            {
+                                ServiceName = serviceName,
+                                ServiceType = serviceInstance.GetType().FullName,
+                                Lifetime = "Transient",
+                                Methods = serviceInstance.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                                    .Where(m => !m.IsSpecialName && m.DeclaringType != typeof(object) && !m.IsGenericMethod)
+                                    .Select(m => new MethodMetadata
+                                    {
+                                        Name = m.Name,
+                                        Parameters = m.GetParameters().Select(p => new ParameterMetadata
+                                        {
+                                            Name = p.Name,
+                                            Type = GetSimpleTypeName(p.ParameterType)
+                                        }).ToArray(),
+                                        ReturnType = GetSimpleTypeName(m.ReturnType)
+                                    }).ToArray(),
+                                Events = serviceInstance.GetType().GetEvents(BindingFlags.Public | BindingFlags.Instance)
+                                    .Where(e => e.DeclaringType != typeof(object) && e.Name != "PropertyChanged")
+                                    .Select(e => e.Name).ToArray(),
+                                Properties = serviceInstance.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                                    .Where(p => p.DeclaringType != typeof(object) && p.GetIndexParameters().Length == 0 && p.CanRead)
+                                    .Select(p => new PropertyMetadata
+                                    {
+                                        Name = p.Name,
+                                        Type = GetSimpleTypeName(p.PropertyType),
+                                        Value = TryGetPropertyValue(serviceInstance, p),
+                                        IsObservableCollection = typeof(System.Collections.Specialized.INotifyCollectionChanged).IsAssignableFrom(p.PropertyType)
+                                    }).ToArray(),
+                                SupportsPropertyChanged = typeof(System.ComponentModel.INotifyPropertyChanged).IsAssignableFrom(serviceInstance.GetType()),
+                                InstanceId = instanceKvp.Key
+                            });
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Émet un événement de log de debug
+        /// </summary>
+        private void EmitDebugLog(DebugLogEntry logEntry)
+        {
+            switch (logEntry.Type)
+            {
+                case MessageType.CallMethod:
+                    MethodCalled?.Invoke(logEntry);
+                    break;
+                case MessageType.MethodResult:
+                    MethodCompleted?.Invoke(logEntry);
+                    break;
+                case MessageType.EventFired:
+                case MessageType.PropertyChangeFired:
+                    EventFired?.Invoke(logEntry);
+                    break;
+                case MessageType.ErrorResponse:
+                    ErrorOccurred?.Invoke(logEntry);
+                    break;
+                case MessageType.GetProperty:
+                case MessageType.SetProperty:
+                    MethodCalled?.Invoke(logEntry);
+                    break;
+            }
+        }
+#endif
 
         /// <summary>
         /// Libère les ressources
