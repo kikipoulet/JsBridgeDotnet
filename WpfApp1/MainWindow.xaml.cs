@@ -1,8 +1,6 @@
-﻿using System.IO;
-using JsBridgeDotnet.WebView2Handler;
-using System.Windows;
-using Microsoft.Web.WebView2.Core;
+﻿using System;
 using WpfApp1.Services;
+using System.Windows;
 
 namespace WpfApp1;
 
@@ -19,20 +17,22 @@ public partial class MainWindow : Window
 
     private async void InitializeAsync()
     {
-        await webView.ConfigureLocalPage("wwwroot", "react", "reactapp", "dist");
-       // await webView.ConfigureLocalPage("wwwroot", "svelte", "sveltedemo", "dist");
-        
-        var serviceBridge = await webView.CreateServiceBridgeAsync();
-        
-       // serviceBridge.RegisterSingletonService("TodoList", new TodoListService());
-        serviceBridge.RegisterSingletonService("Timer", new TimerService());
-        serviceBridge.RegisterTransientService<TodoListService>("TodoList",() => new TodoListService());
-       // serviceBridge.RegisterTransientService<TimerService>("Timer", () => new TimerService());
+        try
+        {
 
-
-       
-       webView.Source = new Uri("https://appassets/index.html");
-       
+            await jsBridgeWebView.ConfigureLocalPage("wwwroot", "react", "reactapp", "dist");
+            await jsBridgeWebView.InitializeAsync();
+            
+            // jsBridgeWebView.ServiceBridge.RegisterSingletonService("TodoList", new TodoListService());
+            jsBridgeWebView.ServiceBridge.RegisterSingletonService("Timer", new TimerService());
+            jsBridgeWebView.ServiceBridge.RegisterTransientService<TodoListService>("TodoList", () => new TodoListService());
+            // jsBridgeWebView.ServiceBridge.RegisterTransientService<TimerService>("Timer", () => new TimerService());
+            
+            jsBridgeWebView.Source = new Uri("https://appassets/index.html");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Erreur d'initialisation: {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
-
 }

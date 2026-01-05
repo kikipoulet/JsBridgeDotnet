@@ -1,0 +1,25 @@
+<UserControl x:Class="JsBridgeDotnet.WPF.JsBridgeWebView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:Wpf="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid>
+        <!-- WebView2 avec une bordure optionnelle -->
+        <Border BorderBrush="Gray" BorderThickness="1">
+            <Wpf:WebView2 x:Name="webView"/>
+        </Border>
+        
+        <!-- Bouton de debug (visible seulement en DEBUG, placeholder pour futur panel) -->
+        <Button x:Name="debugButton" 
+                Content="🔧 Debug" 
+                Width="60" Height="30" 
+                HorizontalAlignment="Right" 
+                VerticalAlignment="Top"
+                Margin="5"
+                Click="OnDebugButtonClick"
+                Visibility="Collapsed"/>
+    </Grid>
+</UserControl>
