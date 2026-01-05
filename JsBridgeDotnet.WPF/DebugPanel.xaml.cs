@@ -140,7 +140,7 @@ namespace JsBridgeDotnet.WPF
         private void OnUnloaded()
         {
             _refreshTimer?.Stop();
-            
+
             // Se désabonner des événements
             _serviceBridge.MessageSent -= OnMessageSent;
             _serviceBridge.MessageReceived -= OnMessageReceived;
