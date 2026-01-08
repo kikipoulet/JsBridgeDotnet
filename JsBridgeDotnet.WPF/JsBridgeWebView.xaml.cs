@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace JsBridgeDotnet.WPF
 {
@@ -53,7 +54,7 @@ namespace JsBridgeDotnet.WPF
         public JsBridgeWebView()
         {
             InitializeComponent();
-            
+
 #if DEBUG
             // Activer la capture des touches clavier pour F10
             KeyDown += OnKeyDown;
@@ -65,8 +66,10 @@ namespace JsBridgeDotnet.WPF
         /// IMPORTANT: ConfigureLocalPage doit être appelé AVANT cette méthode
         /// car elle initialise CoreWebView2 avec le virtual host mapping
         /// </summary>
+        /// <param name="serviceCollection">Optionnel : ServiceCollection DI pour auto-scanner les services [JsService]</param>
+        /// <param name="serviceProvider">Optionnel : DI provider pour résoudre les services (requis si serviceCollection fourni)</param>
         /// <returns>Tâche représentant l'initialisation</returns>
-        public async Task InitializeAsync()
+        public async Task InitializeAsync(IServiceCollection? serviceCollection = null, IServiceProvider? serviceProvider = null)
         {
             if (_isInitialized)
                 return;
@@ -76,9 +79,11 @@ namespace JsBridgeDotnet.WPF
             _messageHandler = new WebView2MessageHandler(webView);
             await _messageHandler.InitializeAsync();
 
-            // Créer et stocker le ServiceBridge
-            _serviceBridge = new ServiceBridge(_messageHandler);
+            // Créer et stocker le ServiceBridge avec DI
+            _serviceBridge = new ServiceBridge(_messageHandler, serviceProvider, serviceCollection);
             _isInitialized = true;
+            
+            Source = new Uri("https://appassets/index.html");
         }
 
         /// <summary>

@@ -1,9 +1,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Timers;
 using Timer = System.Timers.Timer;
+using JsBridgeDotnet.Core;
 
 namespace WpfApp1.Services;
 
+[JsService("Timer")]
 public partial class TimerService : ObservableObject
 {
     [ObservableProperty] private bool isRunning = false;
@@ -21,7 +23,7 @@ public partial class TimerService : ObservableObject
         }
         
         IsRunning = true;
-        _secondsRemaining = 3;
+        _secondsRemaining = 10;
         
         _timer = new Timer(1000); // 1 second interval
         _timer.Elapsed += OnTimerElapsed;

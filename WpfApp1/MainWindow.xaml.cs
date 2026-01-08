@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using WpfApp1.Services;
 using System.Windows;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace WpfApp1;
 
@@ -15,20 +16,21 @@ public partial class MainWindow : Window
         InitializeAsync();
     }
 
+
+    public static IServiceProvider serviceProvider;
+
     private async void InitializeAsync()
     {
         try
         {
-
             await jsBridgeWebView.ConfigureLocalPage("wwwroot", "react", "reactapp", "dist");
-            await jsBridgeWebView.InitializeAsync();
-            
-            // jsBridgeWebView.ServiceBridge.RegisterSingletonService("TodoList", new TodoListService());
-            jsBridgeWebView.ServiceBridge.RegisterSingletonService("Timer", new TimerService());
-            jsBridgeWebView.ServiceBridge.RegisterTransientService<TodoListService>("TodoList", () => new TodoListService());
-            // jsBridgeWebView.ServiceBridge.RegisterTransientService<TimerService>("Timer", () => new TimerService());
-            
-            jsBridgeWebView.Source = new Uri("https://appassets/index.html");
+
+            var services = new ServiceCollection();
+            services.AddSingleton<TimerService>();
+            services.AddTransient<TodoListService>();
+            serviceProvider = services.BuildServiceProvider();
+
+            await jsBridgeWebView.InitializeAsync(services, serviceProvider);
         }
         catch (Exception ex)
         {

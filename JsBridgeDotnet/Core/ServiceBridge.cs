@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows.Threading;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace JsBridgeDotnet.Core
 {
@@ -32,9 +33,9 @@ namespace JsBridgeDotnet.Core
     /// </summary>
     internal class ServiceRegistrationInfo
     {
+        public Type ServiceType { get; set; }
         public ServiceLifetime Lifetime { get; set; }
-        public object SingletonInstance { get; set; }
-        public Func<object> Factory { get; set; }
+        public object? SingletonInstance { get; set; }
         public ConcurrentDictionary<string, WeakReference<object>> TransientInstances { get; set; } = new();
     }
 
@@ -45,6 +46,8 @@ namespace JsBridgeDotnet.Core
     public class ServiceBridge : IDisposable
     {
         private readonly IWebMessageHandler _messageHandler;
+        private readonly IServiceProvider? _serviceProvider;
+        private readonly IServiceCollection? _serviceCollection;
         private readonly Dictionary<string, ServiceRegistrationInfo> _serviceRegistrations;
         private readonly ConcurrentDictionary<string, Action<object>> _pendingCalls;
         private readonly Dictionary<(string service, string eventName, string instanceId), EventSubscription> _eventSubscriptions;
@@ -83,9 +86,11 @@ namespace JsBridgeDotnet.Core
         public event Action<DebugLogEntry> ErrorOccurred;
 #endif
 
-        public ServiceBridge(IWebMessageHandler messageHandler)
+        public ServiceBridge(IWebMessageHandler messageHandler, IServiceProvider? serviceProvider = null, IServiceCollection? serviceCollection = null)
         {
             _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
+            _serviceProvider = serviceProvider;
+            _serviceCollection = serviceCollection;
             _serviceRegistrations = new Dictionary<string, ServiceRegistrationInfo>(StringComparer.OrdinalIgnoreCase);
             _pendingCalls = new ConcurrentDictionary<string, Action<object>>();
             _eventSubscriptions = new Dictionary<(string service, string eventName, string instanceId), EventSubscription>();
@@ -96,14 +101,11 @@ namespace JsBridgeDotnet.Core
                 Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
             };
 
-            InitializeMessageHandler();
-        }
+            if (_serviceCollection != null)
+            {
+                ScanForJsServices();
+            }
 
-        /// <summary>
-        /// Initialise le gestionnaire de messages venant de JavaScript
-        /// </summary>
-        private void InitializeMessageHandler()
-        {
             if (!_messageHandler.IsInitialized)
             {
                 throw new InvalidOperationException("MessageHandler must be initialized before creating ServiceBridge. Call InitializeAsync() first.");
@@ -113,67 +115,75 @@ namespace JsBridgeDotnet.Core
         }
 
         /// <summary>
-        /// Enregistre un service singleton et le rend disponible pour JavaScript
-        /// L'instance fournie sera partagée entre tous les appels JavaScript à ce service
-        /// Le service sera fourni à JavaScript via lazy loading quand JS le demandera
+        /// Scanne le ServiceCollection pour trouver automatiquement tous les services marqués avec [JsService]
         /// </summary>
-        /// <typeparam name="T">Type du service (interface ou classe)</typeparam>
-        /// <param name="serviceName">Nom unique du service pour l'identifier côté JavaScript</param>
-        /// <param name="serviceInstance">Instance unique du service à exposer (singleton)</param>
-        public void RegisterSingletonService<T>(string serviceName, T serviceInstance)
+        private void ScanForJsServices()
         {
-            if (string.IsNullOrWhiteSpace(serviceName))
-                throw new ArgumentException("Service name cannot be empty", nameof(serviceName));
+            if (_serviceCollection == null)
+                return;
 
-            if (serviceInstance == null)
-                throw new ArgumentNullException(nameof(serviceInstance));
-            
-            // Créer l'enregistrement
-            var registration = new ServiceRegistrationInfo
+            var registeredServices = new List<Type>();
+
+            foreach (var descriptor in _serviceCollection)
             {
-                Lifetime = ServiceLifetime.Singleton,
-                SingletonInstance = serviceInstance
-            };
-            
-            _serviceRegistrations[serviceName] = registration;
+                var serviceType = descriptor.ServiceType;
+                var jsServiceAttribute = serviceType.GetCustomAttributes(typeof(JsServiceAttribute), false)
+                    .FirstOrDefault() as JsServiceAttribute;
 
-            // S'abonner aux événements du service pour pouvoir les relayer à JavaScript
-            var serviceType = serviceInstance.GetType();
-            SubscribeToServiceEvents(serviceName, serviceType, serviceInstance, null);
+                if (jsServiceAttribute != null)
+                {
+                    var serviceName = jsServiceAttribute.ServiceName;
+
+                    if (_serviceRegistrations.ContainsKey(serviceName))
+                    {
+                        Console.WriteLine($"[ServiceBridge] Service '{serviceName}' already registered, skipping");
+                        continue;
+                    }
+
+                    var registration = new ServiceRegistrationInfo
+                    {
+                        ServiceType = serviceType,
+                        Lifetime = descriptor.Lifetime == Microsoft.Extensions.DependencyInjection.ServiceLifetime.Singleton
+                            ? Core.ServiceLifetime.Singleton
+                            : Core.ServiceLifetime.Transient
+                    };
+
+                    _serviceRegistrations[serviceName] = registration;
+                    registeredServices.Add(serviceType);
+                    Console.WriteLine($"[ServiceBridge] Auto-registered service '{serviceName}' ({serviceType.Name})");
+                }
+            }
+
+            Console.WriteLine($"[ServiceBridge] Auto-registered {registeredServices.Count} services from DI container");
         }
 
         /// <summary>
-        /// Enregistre un service transient qui créera une nouvelle instance à chaque demande
+        /// Enregistre manuellement un service pour l'exposer à JavaScript
+        /// Le service doit être marqué avec l'attribut [JsService]
+        /// Note: Si ServiceCollection est passé au constructeur, tous les services [JsService] sont auto-scannés
+        /// Cette méthode n'est nécessaire que pour les cas spéciaux
         /// </summary>
-        /// <typeparam name="T">Type du service (interface ou classe)</typeparam>
-        /// <param name="serviceName">Nom unique du service pour l'identifier côté JavaScript</param>
-        /// <param name="factory">Factory pour créer des nouvelles instances</param>
-        public void RegisterTransientService<T>(string serviceName, Func<T> factory)
+        /// <typeparam name="T">Type du service à enregistrer</typeparam>
+        public void RegisterService<T>() where T : class
         {
-            if (string.IsNullOrWhiteSpace(serviceName))
-                throw new ArgumentException("Service name cannot be empty", nameof(serviceName));
+            var serviceType = typeof(T);
 
-            if (factory == null)
-                throw new ArgumentNullException(nameof(factory));
-            
-            // Créer l'enregistrement
+            var jsServiceAttribute = serviceType.GetCustomAttributes(typeof(JsServiceAttribute), false)
+                .FirstOrDefault() as JsServiceAttribute;
+
+            if (jsServiceAttribute == null)
+                throw new InvalidOperationException($"Service {serviceType.Name} is not marked with [JsService] attribute");
+
+            var serviceName = jsServiceAttribute.ServiceName;
+
             var registration = new ServiceRegistrationInfo
             {
-                Lifetime = ServiceLifetime.Transient,
-                Factory = () => factory()
+                ServiceType = serviceType
             };
-            
-            _serviceRegistrations[serviceName] = registration;
-        }
 
-        /// <summary>
-        /// Enregistre un service transient avec un constructeur par défaut
-        /// </summary>
-        /// <typeparam name="T">Type du service (doit avoir un constructeur par défaut)</typeparam>
-        /// <param name="serviceName">Nom unique du service pour l'identifier côté JavaScript</param>
-        public void RegisterTransientService<T>(string serviceName) where T : new()
-        {
-            RegisterTransientService(serviceName, () => new T());
+            _serviceRegistrations[serviceName] = registration;
+
+            Console.WriteLine($"[ServiceBridge] Manually registered service '{serviceName}' ({serviceType.Name})");
         }
 
         /// <summary>
@@ -190,49 +200,66 @@ namespace JsBridgeDotnet.Core
                 }
 
                 var registrationInfo = _serviceRegistrations[serviceName];
-                object serviceInstance;
-                string actualInstanceId = null;
+                object? serviceInstance;
+                string? actualInstanceId = null;
 
-                if (registrationInfo.Lifetime == ServiceLifetime.Singleton)
+                if (string.IsNullOrEmpty(instanceId))
                 {
-                    // Singleton : toujours la même instance
-                    serviceInstance = registrationInfo.SingletonInstance;
-                    actualInstanceId = null;
-                }
-                else // Transient
-                {
-                    // Transient : créer ou récupérer une instance spécifique
-                    if (string.IsNullOrEmpty(instanceId))
+                    if (_serviceProvider == null)
                     {
-                        // Nouvelle instance demandée
-                        serviceInstance = registrationInfo.Factory();
-                        actualInstanceId = Guid.NewGuid().ToString();
-                        
-                        // Stocker avec WeakReference
-                        registrationInfo.TransientInstances.TryAdd(actualInstanceId, 
-                            new WeakReference<object>(serviceInstance, trackResurrection: false));
-                        
-                        // S'abonner aux événements de cette nouvelle instance
-                        var serviceType = serviceInstance.GetType();
-                        SubscribeToServiceEvents(serviceName, serviceType, serviceInstance, actualInstanceId);
+                        SendErrorResponse(messageId, $"Service '{serviceName}' not initialized. IServiceProvider not provided.");
+                        return;
                     }
-                    else
+
+                    if (registrationInfo.Lifetime == ServiceLifetime.Singleton)
                     {
-                        // Instance existante demandée
-                        actualInstanceId = instanceId;
-                        serviceInstance = GetTransientInstance(serviceName, instanceId);
-                        
+                        serviceInstance = _serviceProvider.GetService(registrationInfo.ServiceType);
                         if (serviceInstance == null)
                         {
-                            SendErrorResponse(messageId, $"Transient instance '{instanceId}' not found or was garbage collected");
+                            SendErrorResponse(messageId, $"Service '{registrationInfo.ServiceType.Name}' could not be resolved from DI container");
                             return;
                         }
+
+                        actualInstanceId = null;
+
+                        if (registrationInfo.SingletonInstance == null)
+                        {
+                            SubscribeToServiceEvents(serviceName, registrationInfo.ServiceType, serviceInstance, null);
+                            registrationInfo.SingletonInstance = serviceInstance;
+                        }
+                    }
+                    else // Transient
+                    {
+                        serviceInstance = _serviceProvider.GetService(registrationInfo.ServiceType);
+                        if (serviceInstance == null)
+                        {
+                            SendErrorResponse(messageId, $"Service '{registrationInfo.ServiceType.Name}' could not be resolved from DI container");
+                            return;
+                        }
+
+                        actualInstanceId = Guid.NewGuid().ToString();
+
+                        registrationInfo.TransientInstances.TryAdd(actualInstanceId,
+                            new WeakReference<object>(serviceInstance, trackResurrection: false));
+
+                        SubscribeToServiceEvents(serviceName, registrationInfo.ServiceType, serviceInstance, actualInstanceId);
+                    }
+                }
+                else
+                {
+                    actualInstanceId = instanceId;
+                    serviceInstance = GetTransientInstance(serviceName, instanceId);
+
+                    if (serviceInstance == null)
+                    {
+                        SendErrorResponse(messageId, $"Transient instance '{instanceId}' not found or was garbage collected");
+                        return;
                     }
                 }
 
-                var registration = GenerateServiceMetadata(serviceName, serviceInstance.GetType(), serviceInstance, actualInstanceId, registrationInfo.Lifetime);
+                var lifetime = actualInstanceId == null ? ServiceLifetime.Singleton : ServiceLifetime.Transient;
+                var registration = GenerateServiceMetadata(serviceName, serviceInstance.GetType(), serviceInstance, actualInstanceId, lifetime);
 
-                // Envoyer les métadonnées à JavaScript
                 var responseMessage = new BridgeMessage
                 {
                     MessageId = messageId,
@@ -727,25 +754,26 @@ namespace JsBridgeDotnet.Core
         /// <summary>
         /// Récupère l'instance de service appropriée (singleton ou transient)
         /// </summary>
-        private object GetServiceInstance(string serviceName, string instanceId)
+        private object? GetServiceInstance(string serviceName, string? instanceId)
         {
             if (!_serviceRegistrations.ContainsKey(serviceName))
                 return null;
 
             var registrationInfo = _serviceRegistrations[serviceName];
-            
+
+            // Singleton : DI gère le cache
             if (registrationInfo.Lifetime == ServiceLifetime.Singleton)
             {
-                return registrationInfo.SingletonInstance;
+                return _serviceProvider?.GetService(registrationInfo.ServiceType)
+                    ?? registrationInfo.SingletonInstance;
             }
-            else
-            {
-                if (string.IsNullOrEmpty(instanceId))
-                {
-                    return null; // Doit fournir instanceId pour les transients
-                }
-                return GetTransientInstance(serviceName, instanceId);
-            }
+
+            // Transient : instanceId obligatoire
+            if (string.IsNullOrEmpty(instanceId))
+                return null;
+
+            // Récupérer l'instance depuis le stockage
+            return GetTransientInstance(serviceName, instanceId);
         }
 
         /// <summary>
@@ -1191,9 +1219,8 @@ namespace JsBridgeDotnet.Core
                 var serviceName = kvp.Key;
                 var registrationInfo = kvp.Value;
 
-                if (registrationInfo.Lifetime == ServiceLifetime.Singleton)
+                if (registrationInfo.SingletonInstance != null)
                 {
-                    // Singleton : une seule entrée sans instanceId
                     var serviceInstance = registrationInfo.SingletonInstance;
                     result.Add(new ServiceDebugInfo
                     {
@@ -1230,7 +1257,6 @@ namespace JsBridgeDotnet.Core
                 }
                 else
                 {
-                    // Transient : une entrée par instance active
                     foreach (var instanceKvp in registrationInfo.TransientInstances)
                     {
                         if (instanceKvp.Value.TryGetTarget(out var serviceInstance))

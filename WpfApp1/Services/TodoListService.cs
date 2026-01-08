@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using JsBridgeDotnet.Core;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace WpfApp1.Services;
 
@@ -9,6 +11,7 @@ public class TodoItem
     public string Text { get; set; } = string.Empty;
 }
 
+[JsService("TodoList")]
 public partial class TodoListService : ObservableObject
 {
     public ObservableCollection<TodoItem> Todos { get; set; } = new ObservableCollection<TodoItem>();
@@ -24,6 +27,9 @@ public partial class TodoListService : ObservableObject
         
         Todos.Add(todo);
         _nextId++;
+        
+       TimerService ts = MainWindow.serviceProvider.GetRequiredService<TimerService>();
+       ts.Start();
     }
     
     public void Remove(string id)
