@@ -1208,9 +1208,10 @@ namespace JsBridgeDotnet.Core
 
 #if DEBUG
         /// <summary>
-        /// Retourne les métadonnées de tous les services enregistrés
+        /// Retourne les métadonnées de toutes les services enregistrés (1 par instance active)
+        /// Utilisé par l'onglet "Services Instances" du Debug Panel
         /// </summary>
-        public IEnumerable<ServiceDebugInfo> GetRegisteredServices()
+        public IEnumerable<ServiceDebugInfo> GetActiveInstances()
         {
             var result = new List<ServiceDebugInfo>();
 
@@ -1296,6 +1297,87 @@ namespace JsBridgeDotnet.Core
                         }
                     }
                 }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Renvoie les définitions de tous les services enregistrés (1 par type)
+        /// Utilisé par l'onglet "Services" du Debug Panel
+        /// </summary>
+        public IEnumerable<ServiceDebugInfo> GetServiceDefinitions()
+        {
+            var result = new List<ServiceDebugInfo>();
+
+            foreach (var kvp in _serviceRegistrations)
+            {
+                var serviceName = kvp.Key;
+                var registrationInfo = kvp.Value;
+
+                object? serviceInstance;
+
+                if (registrationInfo.Lifetime == ServiceLifetime.Singleton)
+                {
+                    serviceInstance = registrationInfo.SingletonInstance
+                        ?? _serviceProvider?.GetService(registrationInfo.ServiceType);
+
+                    if (serviceInstance == null)
+                        continue;
+                }
+                else
+                {
+                    var activeInstance = registrationInfo.TransientInstances.Values.FirstOrDefault(v =>
+                    {
+                        v.TryGetTarget(out var target);
+                        return target != null;
+                    });
+
+                    if (activeInstance != null)
+                    {
+                        activeInstance.TryGetTarget(out serviceInstance);
+                    }
+                    else
+                    {
+                        serviceInstance = _serviceProvider?.GetService(registrationInfo.ServiceType);
+                    }
+
+                    if (serviceInstance == null)
+                        continue;
+                }
+
+                result.Add(new ServiceDebugInfo
+                {
+                    ServiceName = serviceName,
+                    ServiceType = serviceInstance.GetType().FullName,
+                    Lifetime = registrationInfo.Lifetime == ServiceLifetime.Singleton ? "Singleton" : "Transient",
+                    InstanceId = null,
+                    Methods = serviceInstance.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                        .Where(m => !m.IsSpecialName && m.DeclaringType != typeof(object) && !m.IsGenericMethod)
+                        .Select(m => new MethodMetadata
+                        {
+                            Name = m.Name,
+                            Parameters = m.GetParameters().Select(p => new ParameterMetadata
+                            {
+                                Name = p.Name,
+                                Type = GetSimpleTypeName(p.ParameterType)
+                            }).ToArray(),
+                            ReturnType = GetSimpleTypeName(m.ReturnType)
+                        }).ToArray(),
+                    Events = serviceInstance.GetType().GetEvents(BindingFlags.Public | BindingFlags.Instance)
+                        .Where(e => e.DeclaringType != typeof(object) && e.Name != "PropertyChanged")
+                        .Select(e => e.Name).ToArray(),
+                    Properties = serviceInstance.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                        .Where(p => p.DeclaringType != typeof(object) && p.GetIndexParameters().Length == 0 && p.CanRead)
+                        .Select(p => new PropertyMetadata
+                        {
+                            Name = p.Name,
+                            Type = GetSimpleTypeName(p.PropertyType),
+                            Value = TryGetPropertyValue(serviceInstance, p),
+                            IsObservableCollection = typeof(System.Collections.Specialized.INotifyCollectionChanged).IsAssignableFrom(p.PropertyType)
+                        }).ToArray(),
+                    SupportsPropertyChanged = typeof(System.ComponentModel.INotifyPropertyChanged).IsAssignableFrom(serviceInstance.GetType())
+                });
             }
 
             return result;

@@ -82,9 +82,11 @@ namespace JsBridgeDotnet.WPF
         {
             try
             {
-                var services = _serviceBridge.GetRegisteredServices();
-                _servicesTab.UpdateServices(services);
-                _instancesTab.UpdateInstances(services);
+                var serviceDefinitions = _serviceBridge.GetServiceDefinitions();
+                _servicesTab.UpdateServices(serviceDefinitions);
+
+                var activeInstances = _serviceBridge.GetActiveInstances();
+                _instancesTab.UpdateInstances(activeInstances);
             }
             catch (Exception ex)
             {
