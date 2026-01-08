@@ -28,7 +28,6 @@ function Timer() {
     <div className="flex justify-center items-center h-full p-8">
       <motion.div initial={{opacity: 0, y: 80, scale: 0.9 }} animate={{opacity: 1, y: 0, scale: 1}} transition={{duration: 0.7, type: 'spring', stiffness: 150, damping: 16}} className="w-full max-w-md text-center">
           <div className="relative mb-12">
-            
             <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{scale: 1, opacity: 1, boxShadow: running ? '0 0 60px rgba(99, 102, 241, 0.3)' : '0 0 40px rgba(0, 0, 0, 0.05)'}}
               transition={{ duration: 0.5 }} className={`relative w-48 h-48 mx-auto rounded-full flex items-center justify-center transition-all duration-500 ${running ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}>
               

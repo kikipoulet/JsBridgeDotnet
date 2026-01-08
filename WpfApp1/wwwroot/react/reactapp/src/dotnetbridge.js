@@ -416,16 +416,17 @@ let DotnetBridge = (function() {
     async function getService(serviceName, options = {}) {
         // options.instanceId : pour récupérer une instance transient spécifique
         // options.createNewInstance : pour forcer la création d'une nouvelle instance transient
-        
-        const cacheKey = options.instanceId 
+        // options.constructorParameters : tableau d'arguments pour le constructeur (transient uniquement)
+
+        const cacheKey = options.instanceId
             ? `${serviceName}_${options.instanceId}`
             : serviceName;
-        
+
         // Pour singleton : comportement actuel (cache)
         if (!options.createNewInstance && !options.instanceId && services.has(serviceName)) {
             return services.get(serviceName);
         }
-        
+
         // Pour transient : ne pas mettre en cache (ou cache avec instanceId unique)
         if (options.createNewInstance || options.instanceId) {
             // Ne pas utiliser le cache, toujours demander à C#
@@ -435,34 +436,35 @@ let DotnetBridge = (function() {
 
         // Demander les métadonnées du service à C# (lazy loading)
         const messageId = generateMessageId();
-        
+
         return new Promise((resolve, reject) => {
             pendingCalls[messageId] = { resolve, reject };
-            
+
             const message = {
                 type: 'GetService',
                 messageId: messageId,
                 serviceName: serviceName,
-                instanceId: options.instanceId
+                instanceId: options.instanceId,
+                parameters: options.constructorParameters || null
             };
-            
+
             sendMessage(message);
         }).then(serviceMetadata => {
-        
+
             // Créer le proxy avec les métadonnées reçues
             const proxy = createServiceProxy(serviceName, serviceMetadata.properties || [], serviceMetadata.instanceId);
-            
+
             // Cache avec la clé appropriée
             if (serviceMetadata.lifetime === 'Singleton') {
                 services.set(serviceName, proxy);
             } else {
                 // Pour les transients, utiliser une clé unique avec instanceId
-                const transientCacheKey = serviceMetadata.instanceId 
+                const transientCacheKey = serviceMetadata.instanceId
                     ? `${serviceName}_${serviceMetadata.instanceId}`
                     : `${serviceName}_${Date.now()}_${Math.random()}`;
                 services.set(transientCacheKey, proxy);
             }
-            
+
             console.log('[DotnetBridge] Service loaded:', serviceName);
             console.log(`[DotnetBridge] Métadonnées reçues pour ${serviceName}:`, {
                 lifetime: serviceMetadata.lifetime,
@@ -476,7 +478,7 @@ let DotnetBridge = (function() {
             if (!bridgeReady) {
                 notifyBridgeReady();
             }
-            
+
             return proxy;
         });
     }

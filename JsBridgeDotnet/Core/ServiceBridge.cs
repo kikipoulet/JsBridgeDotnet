@@ -189,7 +189,7 @@ namespace JsBridgeDotnet.Core
         /// <summary>
         /// Renvoie les métadonnées d'un service demandé par JavaScript (lazy loading)
         /// </summary>
-        private void GetServiceMetadata(string serviceName, string messageId, string instanceId = null)
+        private void GetServiceMetadata(string serviceName, string messageId, string instanceId = null, object[] constructorParameters = null)
         {
             try
             {
@@ -230,11 +230,44 @@ namespace JsBridgeDotnet.Core
                     }
                     else // Transient
                     {
-                        serviceInstance = _serviceProvider.GetService(registrationInfo.ServiceType);
-                        if (serviceInstance == null)
+                        if (constructorParameters != null && constructorParameters.Length > 0)
                         {
-                            SendErrorResponse(messageId, $"Service '{registrationInfo.ServiceType.Name}' could not be resolved from DI container");
-                            return;
+                            if (registrationInfo.Lifetime != ServiceLifetime.Transient)
+                            {
+                                SendErrorResponse(messageId,
+                                    $"Service '{serviceName}' is a Singleton. Constructor parameters are only supported for Transient services.");
+                                return;
+                            }
+
+                            try
+                            {
+                                serviceInstance = CreateInstanceWithConstructor(
+                                    registrationInfo.ServiceType,
+                                    constructorParameters
+                                );
+
+                                if (serviceInstance == null)
+                                {
+                                    SendErrorResponse(messageId,
+                                        $"Failed to create instance of '{registrationInfo.ServiceType.Name}' with provided constructor parameters");
+                                    return;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                SendErrorResponse(messageId,
+                                    $"Error creating instance with constructor parameters: {ex.Message}");
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            serviceInstance = _serviceProvider.GetService(registrationInfo.ServiceType);
+                            if (serviceInstance == null)
+                            {
+                                SendErrorResponse(messageId, $"Service '{registrationInfo.ServiceType.Name}' could not be resolved from DI container");
+                                return;
+                            }
                         }
 
                         actualInstanceId = Guid.NewGuid().ToString();
@@ -725,8 +758,10 @@ namespace JsBridgeDotnet.Core
                         break;
 
                     case MessageType.GetService:
-                        GetServiceMetadata(message.ServiceName, message.MessageId, message.InstanceId);
+                        GetServiceMetadata(message.ServiceName, message.MessageId, message.InstanceId, message.Parameters);
                         break;
+
+
 
                     case MessageType.GetProperty:
                         HandleGetProperty(message);
@@ -1069,6 +1104,105 @@ namespace JsBridgeDotnet.Core
             catch
             {
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Crée une instance d'un type en utilisant les paramètres du constructeur fournis
+        /// Trouve le constructeur approprié et convertit les paramètres
+        /// </summary>
+        /// <param name="serviceType">Type du service à instancier</param>
+        /// <param name="parameters">Paramètres fournis depuis JavaScript</param>
+        /// <returns>Instance créée ou null si échec</returns>
+        private object? CreateInstanceWithConstructor(Type serviceType, object[] parameters)
+        {
+            if (serviceType == null)
+                throw new ArgumentNullException(nameof(serviceType));
+
+            if (parameters == null)
+                parameters = Array.Empty<object>();
+
+            var constructors = serviceType.GetConstructors(
+                BindingFlags.Public | BindingFlags.Instance
+            );
+
+            if (constructors.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    $"No public constructors found for type '{serviceType.Name}'");
+            }
+
+            ConstructorInfo? bestConstructor = null;
+            int bestScore = int.MinValue;
+
+            foreach (var constructor in constructors)
+            {
+                var ctorParams = constructor.GetParameters();
+                var paramCount = ctorParams.Length;
+
+                int score = 0;
+
+                if (paramCount != parameters.Length)
+                {
+                    score = -Math.Abs(paramCount - parameters.Length) * 100;
+                }
+                else
+                {
+                    score = 1000;
+                }
+
+                score -= paramCount;
+
+                if (ctorParams.All(p => p.HasDefaultValue))
+                {
+                    score += 50;
+                }
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestConstructor = constructor;
+                }
+            }
+
+            if (bestConstructor == null)
+            {
+                throw new InvalidOperationException(
+                    $"No suitable constructor found for type '{serviceType.Name}' with {parameters.Length} parameters");
+            }
+
+            var constructorParams = bestConstructor.GetParameters();
+            var convertedParams = new object[constructorParams.Length];
+
+            for (int i = 0; i < constructorParams.Length; i++)
+            {
+                if (i < parameters.Length)
+                {
+                    convertedParams[i] = ConvertParameter(parameters[i], constructorParams[i].ParameterType);
+                }
+                else if (constructorParams[i].HasDefaultValue)
+                {
+                    convertedParams[i] = constructorParams[i].DefaultValue;
+                }
+                else if (constructorParams[i].ParameterType.IsValueType)
+                {
+                    convertedParams[i] = Activator.CreateInstance(constructorParams[i].ParameterType);
+                }
+                else
+                {
+                    convertedParams[i] = null;
+                }
+            }
+
+            try
+            {
+                return bestConstructor.Invoke(convertedParams);
+            }
+            catch (TargetInvocationException tie)
+            {
+                throw new InvalidOperationException(
+                    $"Constructor invocation failed: {tie.InnerException?.Message ?? tie.Message}",
+                    tie.InnerException);
             }
         }
 

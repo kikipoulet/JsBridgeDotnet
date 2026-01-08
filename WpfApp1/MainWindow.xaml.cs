@@ -28,6 +28,7 @@ public partial class MainWindow : Window
             var services = new ServiceCollection();
             services.AddSingleton<TimerService>();
             services.AddTransient<TodoListService>();
+            services.AddSingleton<WpfApp1.Services.Shop.ArticleListService>();
             serviceProvider = services.BuildServiceProvider();
 
             await jsBridgeWebView.InitializeAsync(services, serviceProvider);
