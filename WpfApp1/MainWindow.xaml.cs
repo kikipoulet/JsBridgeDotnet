@@ -2,6 +2,7 @@ using System;
 using WpfApp1.Services;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
+using WpfApp1.Services.Shop;
 
 namespace WpfApp1;
 
@@ -28,7 +29,8 @@ public partial class MainWindow : Window
             var services = new ServiceCollection();
             services.AddSingleton<TimerService>();
             services.AddTransient<TodoListService>();
-            services.AddSingleton<WpfApp1.Services.Shop.ArticleListService>();
+            services.AddSingleton<ArticleListService>();
+            services.AddTransient<ArticleInfoService>();
             serviceProvider = services.BuildServiceProvider();
 
             await jsBridgeWebView.InitializeAsync(services, serviceProvider);

@@ -58,7 +58,7 @@ function ArticleShop() {
                 onPress={() => handleAddToCart(article)}
                 className="font-medium"
             >
-              Ajouter
+              More Info
             </Button>
           </Card.Footer>
         </Card>
