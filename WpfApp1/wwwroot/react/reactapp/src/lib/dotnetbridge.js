@@ -62,7 +62,35 @@ let DotnetBridge = (function() {
                 console.warn('[DotnetBridge] Unknown message type:', message.type);
         }
     }
-    
+
+
+    function updateNestedProperty(obj, pathParts, newValue) {
+        if (pathParts.length === 0) {
+            return newValue;
+        }
+
+        const [currentProp, ...remainingProps] = pathParts;
+        const normalizedProp = currentProp.charAt(0).toLowerCase() + currentProp.slice(1);
+
+        if (typeof obj !== 'object' || obj === null) {
+            return newValue;
+        }
+
+        const newObj = { ...obj };
+
+        if (remainingProps.length === 0) {
+            newObj[normalizedProp] = newValue;
+        } else {
+            const currentObj = obj[normalizedProp];
+            if (currentObj && typeof currentObj === 'object') {
+                newObj[normalizedProp] = updateNestedProperty(currentObj, remainingProps, newValue);
+            } else {
+                newObj[normalizedProp] = newValue;
+            }
+        }
+
+        return newObj;
+    }
     
     function createServiceProxy(serviceName, properties = [], instanceId = null) {
         const proxy = {
@@ -101,21 +129,47 @@ let DotnetBridge = (function() {
             });
         };
         
-        proxy._updateProperty = function(propertyName, value) {
-            const oldValue = proxy._propertyValues.get(propertyName);
-            proxy._propertyValues.set(propertyName, value);
+        proxy._updateProperty = function(propertyPath, value) {
+            const pathParts = propertyPath.split('.');
             
-            const subscribers = proxy._propertySubscribers.get(propertyName);
-            console.log("-----------  PROPERTY CHANGED : " + propertyName );
-            console.log(subscribers);
-            if (subscribers) {
-                subscribers.forEach(callback => {
-                    try {
-                        callback(value, oldValue);
-                    } catch (error) {
-                        console.error(`[DotnetBridge] Error in property callback for ${propertyName}:`, error);
+            if (pathParts.length === 1) {
+                const propertyName = pathParts[0];
+                const oldValue = proxy._propertyValues.get(propertyName);
+                proxy._propertyValues.set(propertyName, value);
+                
+                const subscribers = proxy._propertySubscribers.get(propertyName);
+                console.log("-----------  PROPERTY CHANGED : " + propertyName );
+                console.log(subscribers);
+                if (subscribers) {
+                    subscribers.forEach(callback => {
+                        try {
+                            callback(value, oldValue);
+                        } catch (error) {
+                            console.error(`[DotnetBridge] Error in property callback for ${propertyName}:`, error);
+                        }
+                    });
+                }
+            } else {
+                const [parentProp, ...nestedProps] = pathParts;
+                const oldParentObject = proxy._propertyValues.get(parentProp);
+                
+                if (oldParentObject && nestedProps.length > 0) {
+                    const newParentObject = updateNestedProperty(oldParentObject, nestedProps, value);
+                    proxy._propertyValues.set(parentProp, newParentObject);
+                    
+                    const subscribers = proxy._propertySubscribers.get(parentProp);
+                    console.log(`[DotnetBridge] NESTED PROPERTY CHANGED : ${propertyPath}`);
+                    console.log(subscribers);
+                    if (subscribers) {
+                        subscribers.forEach(callback => {
+                            try {
+                                callback(newParentObject, oldParentObject);
+                            } catch (error) {
+                                console.error(`[DotnetBridge] Error in property callback for ${propertyPath}:`, error);
+                            }
+                        });
                     }
-                });
+                }
             }
         };
         
@@ -319,8 +373,9 @@ let DotnetBridge = (function() {
         
         if (service && service._updateProperty) {
             const value = result?.value;
-            console.log(`[DotnetBridge] Property ${propertyName} changed to:`, value);
-            service._updateProperty(propertyName, value);
+            const propertyPath = result?.propertyPath || propertyName;
+            console.log(`[DotnetBridge] Property ${propertyPath} changed to:`, value);
+            service._updateProperty(propertyPath, value);
         } else {
             console.warn(`[DotnetBridge] Service not found for property change: ${cacheKey}`);
         }

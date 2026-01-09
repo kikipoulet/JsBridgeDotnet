@@ -43,7 +43,17 @@ export function useObservableProperty(service, propertyName) {
     // Subscribe to changes
     if (service[eventName] && typeof service[eventName].subscribe === 'function') {
       const listenerId = service[eventName].subscribe((newValue, oldValue) => {
+        console.log('[useObservableProperty] === CALLBACK CALLED ===');
+        console.log('[useObservableProperty] propertyName:', propertyName);
+        console.log('[useObservableProperty] newValue:', newValue);
+        console.log('[useObservableProperty] oldValue:', oldValue);
+        console.log('[useObservableProperty] newValue type:', typeof newValue);
+        if (newValue && typeof newValue === 'object') {
+          console.log('[useObservableProperty] newValue keys:', Object.keys(newValue));
+        }
+        console.log('[useObservableProperty] Calling setValue(newValue)');
         setValue(newValue);
+        console.log('[useObservableProperty] === END CALLBACK ===');
       });
 
       return () => {

@@ -104,9 +104,10 @@ function ArticleDetails({ articleId, articleName, onBack }) {
               
               <div className="flex items-center gap-4">
                 <Chip color="accent" size="lg" variant="soft">
-                  ${article?.price}
+                  ${article?.price.toFixed(2)}
                 </Chip>
               </div>
+              <p>Price is increasing every second in the C#. Nested ObservableProperty works and update the UI automatically too !</p>
 
               <Card.Footer className="flex gap-3 mt-4 pt-4 border-t">
                 <Button variant="primary" onPress={onBack} className="flex-1 md:flex-none">

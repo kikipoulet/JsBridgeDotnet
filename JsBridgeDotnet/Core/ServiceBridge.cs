@@ -51,6 +51,7 @@ namespace JsBridgeDotnet.Core
         private readonly Dictionary<string, ServiceRegistrationInfo> _serviceRegistrations;
         private readonly ConcurrentDictionary<string, Action<object>> _pendingCalls;
         private readonly Dictionary<(string service, string eventName, string instanceId), EventSubscription> _eventSubscriptions;
+        private readonly Dictionary<(string service, string propertyName, string instanceId), List<NestedPropertySubscription>> _nestedPropertySubscriptions;
         public readonly JsonSerializerOptions _jsonOptions;
         private bool _isDisposed;
 
@@ -94,6 +95,7 @@ namespace JsBridgeDotnet.Core
             _serviceRegistrations = new Dictionary<string, ServiceRegistrationInfo>(StringComparer.OrdinalIgnoreCase);
             _pendingCalls = new ConcurrentDictionary<string, Action<object>>();
             _eventSubscriptions = new Dictionary<(string service, string eventName, string instanceId), EventSubscription>();
+            _nestedPropertySubscriptions = new Dictionary<(string service, string propertyName, string instanceId), List<NestedPropertySubscription>>();
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -380,6 +382,16 @@ namespace JsBridgeDotnet.Core
                 })
                 .ToArray();
 
+            // S'abonner aux propriétés imbriquées qui implémentent INotifyPropertyChanged
+            foreach (var propertyMetadata in properties)
+            {
+                if (propertyMetadata.Value != null &&
+                    typeof(System.ComponentModel.INotifyPropertyChanged).IsAssignableFrom(propertyMetadata.Value.GetType()))
+                {
+                    SubscribeToNestedPropertyChanges(serviceName, propertyMetadata.Name, serviceInstance, propertyMetadata.Value, instanceId);
+                }
+            }
+
             // Vérifier si le service implémente INotifyPropertyChanged
             var supportsPropertyChanged = typeof(System.ComponentModel.INotifyPropertyChanged).IsAssignableFrom(serviceType);
 
@@ -570,7 +582,7 @@ namespace JsBridgeDotnet.Core
         /// <summary>
         /// Appelé quand une propriété change
         /// </summary>
-        private void OnPropertyChangedFired(string serviceName, string propertyName, object serviceInstance, string instanceId = null)
+        private void OnPropertyChangedFired(string serviceName, string propertyName, object serviceInstance, string instanceId = null, string parentPropertyPath = null)
         {
 #if DEBUG
             EventFired?.Invoke(new DebugLogEntry
@@ -593,6 +605,10 @@ namespace JsBridgeDotnet.Core
 
                 var value = TryGetPropertyValue(serviceInstance, propertyInfo);
 
+                var propertyPath = string.IsNullOrEmpty(parentPropertyPath)
+                    ? propertyName
+                    : $"{parentPropertyPath}.{propertyName}";
+
                 var message = new BridgeMessage
                 {
                     Type = MessageType.PropertyChangeFired,
@@ -601,6 +617,7 @@ namespace JsBridgeDotnet.Core
                     MethodName = propertyName,
                     Result = new
                     {
+                        PropertyPath = propertyPath,
                         PropertyName = propertyName,
                         Value = value
                     },
@@ -608,10 +625,88 @@ namespace JsBridgeDotnet.Core
                 };
 
                 SendMessageToJavaScript(message);
+
+                if (parentPropertyPath == null)
+                {
+                    SubscribeToNestedPropertyChanges(serviceName, propertyName, serviceInstance, value, instanceId);
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error sending property change {propertyName} from service {serviceName}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// S'abonne aux changements de propriétés imbriquées qui implémentent INotifyPropertyChanged
+        /// </summary>
+        private void SubscribeToNestedPropertyChanges(string serviceName, string parentPropertyName, object parentInstance, object propertyValue, string instanceId)
+        {
+            if (propertyValue == null)
+                return;
+
+            var propertyType = propertyValue.GetType();
+
+            if (!typeof(System.ComponentModel.INotifyPropertyChanged).IsAssignableFrom(propertyType))
+                return;
+
+            var key = (serviceName, parentPropertyName, instanceId);
+
+            if (!_nestedPropertySubscriptions.ContainsKey(key))
+            {
+                _nestedPropertySubscriptions[key] = new List<NestedPropertySubscription>();
+            }
+
+            var existingSubscriptions = _nestedPropertySubscriptions[key];
+
+            if (existingSubscriptions.Any(s => s.NestedPropertyObject == propertyValue))
+            {
+                return;
+            }
+
+            var propertyChangedEvent = typeof(System.ComponentModel.INotifyPropertyChanged).GetEvent("PropertyChanged");
+
+            var handler = new System.ComponentModel.PropertyChangedEventHandler((sender, args) =>
+            {
+                OnPropertyChangedFired(serviceName, args.PropertyName, sender, instanceId, parentPropertyName);
+            });
+
+            propertyChangedEvent?.AddEventHandler(propertyValue, handler);
+
+            existingSubscriptions.Add(new NestedPropertySubscription
+            {
+                ParentPropertyName = parentPropertyName,
+                NestedPropertyObject = propertyValue,
+                Handler = handler
+            });
+
+            Console.WriteLine($"[ServiceBridge] Subscribed to nested property changes for {serviceName}.{parentPropertyName}");
+        }
+
+        /// <summary>
+        /// Nettoie les abonnements aux propriétés imbriquées pour un service
+        /// </summary>
+        private void CleanupNestedPropertySubscriptions(string serviceName, string instanceId = null)
+        {
+            var keysToRemove = _nestedPropertySubscriptions.Keys
+                .Where(k => k.service == serviceName && k.instanceId == instanceId)
+                .ToList();
+
+            foreach (var key in keysToRemove)
+            {
+                if (_nestedPropertySubscriptions.TryGetValue(key, out var subscriptions))
+                {
+                    foreach (var subscription in subscriptions)
+                    {
+                        if (subscription.NestedPropertyObject is System.ComponentModel.INotifyPropertyChanged notifyObject)
+                        {
+                            var propertyChangedEvent = typeof(System.ComponentModel.INotifyPropertyChanged).GetEvent("PropertyChanged");
+                            propertyChangedEvent?.RemoveEventHandler(subscription.NestedPropertyObject, subscription.Handler);
+                        }
+                    }
+                    _nestedPropertySubscriptions.Remove(key);
+                    Console.WriteLine($"[ServiceBridge] Cleaned up nested property subscriptions for {key.service}.{key.propertyName}");
+                }
             }
         }
 
@@ -1572,7 +1667,29 @@ namespace JsBridgeDotnet.Core
                 }
             }
 
+            // Nettoyer les abonnements aux propriétés imbriquées
+            foreach (var kvp in _nestedPropertySubscriptions)
+            {
+                var subscriptions = kvp.Value;
+                try
+                {
+                    foreach (var subscription in subscriptions)
+                    {
+                        if (subscription.NestedPropertyObject is System.ComponentModel.INotifyPropertyChanged notifyObject)
+                        {
+                            var propertyChangedEvent = typeof(System.ComponentModel.INotifyPropertyChanged).GetEvent("PropertyChanged");
+                            propertyChangedEvent?.RemoveEventHandler(subscription.NestedPropertyObject, subscription.Handler);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error removing nested property subscription: {ex.Message}");
+                }
+            }
+
             _eventSubscriptions.Clear();
+            _nestedPropertySubscriptions.Clear();
             _serviceRegistrations.Clear();
             _pendingCalls.Clear();
 
@@ -1590,5 +1707,15 @@ namespace JsBridgeDotnet.Core
         public EventInfo EventInfo { get; set; }
         public List<Delegate> Handlers { get; set; } = new List<Delegate>();
         public List<string> ListenerIds { get; set; } = new List<string>();
+    }
+
+    /// <summary>
+    /// Informations sur un abonnement à une propriété imbriquée observable
+    /// </summary>
+    internal class NestedPropertySubscription
+    {
+        public string ParentPropertyName { get; set; }
+        public object NestedPropertyObject { get; set; }
+        public System.ComponentModel.PropertyChangedEventHandler Handler { get; set; }
     }
 }
