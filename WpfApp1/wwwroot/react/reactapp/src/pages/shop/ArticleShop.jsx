@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import './dotnetbridge.js';
-import { useObservableCollection } from './dotnetbridge-react.js';
+import '../../lib/dotnetbridge.js';
+import { useObservableCollection } from '../../lib/dotnetbridge-react.js';
 import { Card, Button, Chip, Surface } from '@heroui/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BreadcrumbProvider } from './BreadcrumbContext';
+import { BreadcrumbProvider } from '../../context/BreadcrumbContext';
 import ArticleDetails from './ArticleDetails';
 
 function ArticleShopContent() {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Button, Chip, Surface, Avatar, Link, Spinner } from '@heroui/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {useObservableProperty} from "./dotnetbridge-react.js";
+import {useObservableProperty} from "../../lib/dotnetbridge-react.js";
 
 function ArticleDetails({ articleId, articleName, onBack }) {
   const [articleInfoService, setArticleInfoService] = useState(null);
@@ -84,14 +84,13 @@ function ArticleDetails({ articleId, articleName, onBack }) {
 
         <Card variant="tertiary" className="max-w-3xl mx-auto">
           <Card.Content className="flex flex-col md:flex-row gap-6 p-6">
-            <Avatar className="shrink-0 w-full md:w-auto" size="lg">
-              <Avatar.Image 
-                src={article?.imageUrl} 
-                alt={article?.name} 
-                className="w-full md:w-auto"
-              />
-              <Avatar.Fallback>{article?.name?.charAt(0)}</Avatar.Fallback>
-            </Avatar>
+            <img
+                src={article?.imageUrl}
+                alt={article?.name}
+                loading="lazy"
+                className="h-full w-50 object-cover transition-transform duration-300 hover:scale-105"
+            />
+            
 
             <div className="flex-1 flex flex-col gap-4">
               <div>

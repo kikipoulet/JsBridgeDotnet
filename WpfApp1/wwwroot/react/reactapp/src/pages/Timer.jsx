@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import './dotnetbridge.js';
-import { useObservableProperty } from './dotnetbridge-react.js';
+import '../lib/dotnetbridge.js';
+import { useObservableProperty } from '../lib/dotnetbridge-react.js';
 import { Button } from '@heroui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 

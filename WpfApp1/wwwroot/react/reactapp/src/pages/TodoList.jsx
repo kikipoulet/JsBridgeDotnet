@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import './dotnetbridge.js';
-import { useObservableCollection } from './dotnetbridge-react.js';
+import '../lib/dotnetbridge.js';
+import { useObservableCollection } from '../lib/dotnetbridge-react.js';
 import { Button, Input } from '@heroui/react';
 
 function TodoList() {

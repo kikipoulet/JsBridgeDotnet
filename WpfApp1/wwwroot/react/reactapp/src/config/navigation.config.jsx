@@ -1,8 +1,8 @@
-import TodoList from './TodoList.jsx';
+import TodoList from '../pages/TodoList.jsx';
 
-import Timer from './Timer.jsx';
+import Timer from '../pages/Timer.jsx';
 
-import ArticleShop from './ArticleShop.jsx';
+import ArticleShop from '../pages/shop/ArticleShop.jsx';
 
 export const PAGES = {
   todo: {

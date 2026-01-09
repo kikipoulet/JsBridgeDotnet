@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button, Surface } from '@heroui/react';
-import { PAGES } from './navigation.config.jsx';
+import { PAGES } from '../config/navigation.config.jsx';
 
 function SideMenu({ currentPage, onPageChange }) {
   const [isCollapsed, setIsCollapsed] = useState(false);

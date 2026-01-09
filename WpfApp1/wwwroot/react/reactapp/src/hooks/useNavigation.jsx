@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { PAGES, DEFAULT_PAGE } from './navigation.config.jsx';
+import { PAGES, DEFAULT_PAGE } from '../config/navigation.config.jsx';
 
 export function useNavigation() {
   const [currentPage, setCurrentPage] = useState(DEFAULT_PAGE);

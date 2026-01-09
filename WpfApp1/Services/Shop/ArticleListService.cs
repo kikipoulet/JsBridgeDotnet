@@ -1,15 +1,16 @@
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using JsBridgeDotnet.Core;
 
 namespace WpfApp1.Services.Shop;
 
-public class Article
+public partial class Article : ObservableObject
 {
-    public string Id { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public double Price { get; set; }
-    public string ImageUrl { get; set; } = string.Empty;
+    [ObservableProperty] private string id  = string.Empty;
+    [ObservableProperty]private string name  = string.Empty;
+    [ObservableProperty] private string description  = string.Empty;
+    [ObservableProperty] private double price = 0;
+    [ObservableProperty] private string imageUrl  = string.Empty;
 }
 
 [JsService("ArticleList")]
@@ -23,7 +24,7 @@ public class ArticleListService
             Name = "Laptop Pro 15",
             Description = "High-performance laptop with 16GB RAM, 512GB SSD, and dedicated graphics card",
             Price = 1299.99,
-            ImageUrl = "https://via.placeholder.com/300x200/4287f5/ffffff?text=Laptop"
+            ImageUrl = "https://placehold.co/300x200/4287f5/FFFFFF?text=Laptop"
         },
         new Article
         {
@@ -31,7 +32,7 @@ public class ArticleListService
             Name = "Wireless Mouse",
             Description = "Ergonomic wireless mouse with precision tracking and long battery life",
             Price = 29.99,
-            ImageUrl = "https://via.placeholder.com/300x200/f54242/ffffff?text=Mouse"
+            ImageUrl = "https://placehold.co/300x200/f54242/FFFFFF?text=Mouse"
         },
         new Article
         {
@@ -39,7 +40,7 @@ public class ArticleListService
             Name = "Mechanical Keyboard",
             Description = "RGB backlit mechanical keyboard with cherry MX switches",
             Price = 89.99,
-            ImageUrl = "https://via.placeholder.com/300x200/42f554/ffffff?text=Keyboard"
+            ImageUrl = "https://placehold.co/300x200/42f554/FFFFFF?text=Keyboard"
         },
         new Article
         {
@@ -47,7 +48,7 @@ public class ArticleListService
             Name = "4K Monitor",
             Description = "27-inch 4K IPS monitor with HDR support and USB-C connectivity",
             Price = 399.99,
-            ImageUrl = "https://via.placeholder.com/300x200/f5a442/ffffff?text=Monitor"
+            ImageUrl = "https://placehold.co/300x200/f5a442/FFFFFF?text=Monitor"
         },
         new Article
         {
@@ -55,7 +56,7 @@ public class ArticleListService
             Name = "USB-C Hub",
             Description = "Multi-port USB-C hub with HDMI, USB 3.0, and SD card reader",
             Price = 49.99,
-            ImageUrl = "https://via.placeholder.com/300x200/a442f5/ffffff?text=Hub"
+            ImageUrl = "https://placehold.co/300x200/a442f5/FFFFFF?text=Hub"
         },
         new Article
         {
@@ -63,7 +64,7 @@ public class ArticleListService
             Name = "Webcam HD",
             Description = "1080p HD webcam with auto-focus and noise-cancelling microphone",
             Price = 79.99,
-            ImageUrl = "https://via.placeholder.com/300x200/42f5f5/ffffff?text=Webcam"
+            ImageUrl = "https://placehold.co/300x200/42f5f5/FFFFFF?text=Webcam"
         }
     };
 }

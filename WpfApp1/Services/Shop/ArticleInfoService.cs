@@ -12,5 +12,14 @@ public partial class ArticleInfoService : ObservableObject
     public ArticleInfoService(string id)
     {
         Article = MainWindow.serviceProvider.GetRequiredService<ArticleListService>().Articles.FirstOrDefault(a => a.Id == id);
+
+        Task.Run(() =>
+        {
+            for (int i = 0; i < 100; i++)
+            {
+                Article.Price *= 1.05;
+                Thread.Sleep(1000);
+            }
+        });
     }
 }

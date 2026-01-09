@@ -1,8 +1,8 @@
 
-import { useNavigation } from './useNavigation.jsx';
+import { useNavigation } from './hooks/useNavigation.jsx';
 
-import SideMenu from './SideMenu.jsx';
-import './App.css';
+import SideMenu from './components/SideMenu.jsx';
+import './styles/App.css';
 
 function App() {
   const { currentPage, currentPageComponent, navigate } = useNavigation();
