@@ -137,8 +137,8 @@ let DotnetBridge = (function() {
                 if (['toString', 'valueOf', 'constructor', 'prototype', 'length', 'name'].includes(propertyName)) {
                     return undefined;
                 }
-                
-                if (propertyName.startsWith('On') && propertyName.length > 2) {
+
+                if (propertyName && typeof propertyName === 'string' && propertyName.startsWith('On') && propertyName.length > 2) {
                     const eventName = propertyName.slice(2);
                     
                     // Vérifier si c'est de la forme On{PropertyName}Changed pour une propriété observable
@@ -215,7 +215,8 @@ let DotnetBridge = (function() {
                 }
                 
             // Générer automatiquement Get{PropertyName} et Set{PropertyName} pour les propriétés
-            if (propertyName.startsWith('Get') && propertyName.length > 3) {
+     
+            if (propertyName && typeof propertyName === 'string' && propertyName.startsWith('Get') && propertyName.length > 3) {
                 const propName = propertyName.substring(3);
                 if (target._propertyValues.has(propName)) {
                     // Getter généré automatiquement pour la propriété
@@ -239,7 +240,7 @@ let DotnetBridge = (function() {
             }
                 
             // Générer automatiquement Set{PropertyName} pour les propriétés
-            if (propertyName.startsWith('Set') && propertyName.length > 3) {
+            if (propertyName && typeof propertyName === 'string' && propertyName.startsWith('Set') && propertyName.length > 3) {
                 const propName = propertyName.substring(3);
                 if (target._propertyValues.has(propName)) {
                     // Setter généré automatiquement pour la propriété

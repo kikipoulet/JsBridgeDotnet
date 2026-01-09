@@ -3,9 +3,16 @@ import './dotnetbridge.js';
 import { useObservableCollection } from './dotnetbridge-react.js';
 import { Card, Button, Chip, Surface } from '@heroui/react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { BreadcrumbProvider } from './BreadcrumbContext';
+import ArticleDetails from './ArticleDetails';
 
-function ArticleShop() {
+function ArticleShopContent() {
   const [shopService, setShopService] = useState(null);
+  const [navigationState, setNavigationState] = useState({
+    view: 'shop',
+    selectedArticleId: null,
+    selectedArticleName: null
+  });
   const articles = useObservableCollection(shopService, 'Articles');
 
   useEffect(() => {
@@ -17,8 +24,20 @@ function ArticleShop() {
     initService();
   }, []);
 
-  const handleAddToCart = (article) => {
-    console.log(`Added to cart: ${article.Name} - $${article.Price}`);
+  const navigateToDetails = (article) => {
+    setNavigationState({
+      view: 'details',
+      selectedArticleId: article.id,
+      selectedArticleName: article.name
+    });
+  };
+
+  const navigateToShop = () => {
+    setNavigationState({
+      view: 'shop',
+      selectedArticleId: null,
+      selectedArticleName: null
+    });
   };
 
   const ProductCard = ({ article }) => (
@@ -55,7 +74,7 @@ function ArticleShop() {
             <Button
                 variant="primary"
                 size="sm"
-                onPress={() => handleAddToCart(article)}
+                onPress={() => navigateToDetails(article)}
                 className="font-medium"
             >
               More Info
@@ -66,61 +85,88 @@ function ArticleShop() {
   );
 
   return (
-      <Surface variant="default" className="min-h-screen">
-        <div className="container mx-auto px-4 py-8">
-          <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, type: 'spring' }}
-              className="mb-8"
-          >
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-              🛒 Boutique
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 text-lg">
-              {articles.length} {articles.length === 1 ? 'article disponible' : 'articles disponibles'}
-            </p>
-          </motion.div>
+      <AnimatePresence mode="wait">
+        {navigationState.view === 'shop' ? (
+            <motion.div
+                key="shop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+            >
+              <Surface variant="default" className="min-h-screen">
+                <div className="container mx-auto px-4 py-8">
+                  <motion.div
+                      initial={{ opacity: 0, y: -20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, type: 'spring' }}
+                      className="mb-8"
+                  >
+                    <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                      🛒 Boutique
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-400 text-lg">
+                      {articles.length} {articles.length === 1 ? 'article disponible' : 'articles disponibles'}
+                    </p>
+                  </motion.div>
 
-          {articles.length === 0 ? (
-              <motion.div
-                  initial={{ }}
-                  animate={{ }}
-                  className="flex flex-col items-center justify-center py-20 text-center"
-              >
-                <div className="text-6xl mb-4">📦</div>
-                <p className="text-gray-600 dark:text-gray-400 text-lg">
-                  Aucun article disponible pour le moment
-                </p>
-              </motion.div>
-          ) : (
-              <motion.div
-                  layout
-                  className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-              >
-                <AnimatePresence mode="popLayout">
-                  {articles.map((article, index) => (
+                  {articles.length === 0 ? (
                       <motion.div
-                          key={article.Id}
-                          initial={{ opacity: 0, y: 30 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
-                          transition={{
-                            duration: 0.4,
-                            delay: index * 0.08,
-                            type: 'spring',
-                            stiffness: 150,
-                            damping: 20
-                          }}
+                          initial={{ }}
+                          animate={{ }}
+                          className="flex flex-col items-center justify-center py-20 text-center"
                       >
-                        <ProductCard article={article} />
+                        <div className="text-6xl mb-4">📦</div>
+                        <p className="text-gray-600 dark:text-gray-400 text-lg">
+                          Aucun article disponible pour le moment
+                        </p>
                       </motion.div>
-                  ))}
-                </AnimatePresence>
-              </motion.div>
-          )}
-        </div>
-      </Surface>
+                  ) : (
+                      <motion.div
+                          layout
+                          className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                      >
+                        <AnimatePresence mode="popLayout">
+                          {articles.map((article, index) => (
+                              <motion.div
+                                  key={article.Id}
+                                  initial={{ opacity: 0, y: 30 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.8 }}
+                                  transition={{
+                                    duration: 0.4,
+                                    delay: index * 0.08,
+                                    type: 'spring',
+                                    stiffness: 150,
+                                    damping: 20
+                                  }}
+                              >
+                                <ProductCard article={article} />
+                              </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </motion.div>
+                  )}
+                </div>
+              </Surface>
+            </motion.div>
+        ) : (
+            <ArticleDetails
+                key="details"
+                articleId={navigationState.selectedArticleId}
+                articleName={navigationState.selectedArticleName}
+                onBack={navigateToShop}
+            />
+        )}
+      </AnimatePresence>
+  );
+}
+
+function ArticleShop() {
+  return (
+      <BreadcrumbProvider>
+        <ArticleShopContent />
+      </BreadcrumbProvider>
   );
 }
 
