@@ -1,5 +1,5 @@
 import React from 'react';
-import {Root, DockPanel, Grid, StackPanel} from '../../layoutcomponents';
+import {Root, DockPanel, Grid, StackPanel, ScrollViewer} from '../../layoutcomponents';
 
 function LayoutDemo() {
   return (
@@ -9,7 +9,11 @@ function LayoutDemo() {
                   Top
               </div>
               <div dock="left" style={{ width: 120, background: '#448aff', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}>
-                  Left
+                  <ScrollViewer verticalScrollBarVisibility="auto">
+                      <StackPanel orientation="vertical" spacing={8}>
+                          <p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p><p>hello</p>
+                      </StackPanel>
+                  </ScrollViewer>
               </div>
               <DockPanel style={{ width: 420}} dock="right">
                   <div dock="top" style={{ height: 8, background: '#ff0252', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}>
@@ -41,6 +45,8 @@ function LayoutDemo() {
                           <button>centered</button>
                           <button>centered</button>
                       </StackPanel>
+                      <button horizontalAlignment="left" verticalAlignment="bottom">bottom left button</button>
+                      <button horizontalAlignment="right" verticalAlignment="top">top right button</button>
                   </Grid>
               </div>
           </DockPanel>

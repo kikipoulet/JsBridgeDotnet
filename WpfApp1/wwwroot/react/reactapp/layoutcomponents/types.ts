@@ -52,3 +52,12 @@ export interface DockChildProps {
   style?: React.CSSProperties;
   children?: React.ReactNode;
 }
+
+export type ScrollBarVisibility = 'auto' | 'visible' | 'hidden' | 'disabled';
+
+export interface ScrollViewerProps {
+  verticalScrollBarVisibility?: ScrollBarVisibility;
+  horizontalScrollBarVisibility?: ScrollBarVisibility;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}

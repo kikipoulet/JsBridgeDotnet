@@ -2,6 +2,7 @@ export { Root } from './Root';
 export { StackPanel } from './StackPanel';
 export { Grid } from './Grid';
 export { DockPanel } from './DockPanel';
+export { ScrollViewer } from './ScrollViewer';
 export type {
   Orientation,
   Alignment,
@@ -11,5 +12,7 @@ export type {
   GridProps,
   GridChildProps,
   DockPanelProps,
-  DockChildProps
+  DockChildProps,
+  ScrollViewerProps,
+  ScrollBarVisibility
 } from './types';
