@@ -98,67 +98,235 @@ function TodoList() {
 
 ```
 
-# what is currently supported 
+# react
 
-## C# Side
 
-#### 1. Service
 
+---
+
+## 1. ObservableProperty - Basic Types
+
+Synchronize simple types (boolean, string, number) between React and C#.
+
+**React:**
+```jsx
+const [isRunning, setIsRunning] = useObservableProperty(timerService, 'IsRunning');
+const [input, setInput] = useObservableProperty(timerService, 'Input');
+
+// Display
+<p>Status: {isRunning ? 'Running' : 'Stopped'}</p>
+<input value={input} onChange={(e) => setInput(e.target.value)} />
+```
+
+**C# Service:**
 ```csharp
-
-
-public partial class TodoListService : ObservableObject
+public class TimerService : ObservableObject
 {
-    public ObservableCollection<TodoItem> Todos { get; set; } = new ObservableCollection<TodoItem>(); 
-
-    public int Count {get;set;} = 1;
-
-    public void Add(string text) => ...
-
-    [ObservableProperty] private int isRunning = false;
-
-    public event EventHandler? TimerStopped;
-
+    [ObservableProperty] private bool isRunning;
+    [ObservableProperty] private string input;
 }
 ```
 
-### 2. Initialisation du Bridge dans la webview et enregistrement du service
+---
 
+## 2. ObservableProperty - Complex Objects
+
+Synchronize complex objects with automatic nested property updates.
+
+**React:**
+```jsx
+const [article, setArticle] = useObservableProperty(service, 'Article');
+
+// Nested properties update automatically
+<p>{article.name}</p>
+<p>${article.price.toFixed(2)}</p>
+<img src={article.imageUrl} />
+```
+
+**C# Service:**
 ```csharp
+public class ArticleInfoService : ObservableObject
+{
+    [ObservableProperty] private Article article
+}
 
-        // Créer le bridge pour le WebView
-        var serviceBridge = await webView.CreateServiceBridgeAsync();
-        
-        // Enregistrer le service
-        serviceBridge.RegisterSingletonService("TodoList", new TodoListService());
+public partial class Article : ObservableObject
+{
+    [ObservableProperty]private string name  = string.Empty;
+    [ObservableProperty] private double price = 0;
+    [ObservableProperty] private string imageUrl  = string.Empty;
+}
+```
 
-        // Helper pour Naviguer vers la page HTML
-        webView.NavigateToLocalPage("wwwroot", "index.html");
-    
+---
+
+## 3. ObservableCollection - Lists
+
+Real-time synchronization of collections between .NET and React.
+
+**React:**
+```jsx
+const todos = useObservableCollection(todoService, 'Todos');
+
+// Automatically re-renders when collection changes
+{todos.map(todo => (
+  <li key={todo.id}>
+    {todo.text}
+    <button onClick={() => todoService.Delete(todo.id)}>Delete</button>
+  </li>
+))}
+```
+
+**C# Service:**
+```csharp
+public class TodoListService
+{
+    public ObservableCollection<Todo> Todos { get; } = new();
+
+    public void Delete(string id) => ...
+}
+
+public class Todo
+{
+    public int Id { get; set; }
+    public string Text { get; set; }
+}
+```
+
+---
+
+## 4. Service Methods
+
+Call C# methods directly from React.
+
+**React:**
+```jsx
+  await timerService.Start();
+
+```
+
+**C# Service:**
+```csharp
+public class TimerService
+{
+    public void Start() { /* ... */ }
+}
 
 ```
 
 ---
 
-## JS Side - vanillaJS
+## 5. Singleton/Transient Service
 
-```javascript
-<script>
-    async function init() {
-        const todoService = await DotnetBridge.getService("TodoList");
+Single shared instance across the entire application.
 
-        todoService.OnTodosChanged.subscribe((args) => { }); 
+**React:**
+```jsx
+ const [timerService, setTimerService] = useState(null);
 
-        todoservice.GetCount();
-        todoservice.SetCount(x);
+useEffect(() => {
+  const initService = async () => {
+    const service = await DotnetBridge.getService('Timer');
+    setTimerService(service);
+  };
+  initService();
+}, []);
+```
 
-        todoservice.Add("item")
 
-        todoservice.GetIsRunning();
-        todoservice.SetIsRunning(x);
-        todoservice.OnIsRunningChanged.subscribe((newValue, oldValue) => { });
+---
 
-        todoService.OnTimerStopped.subscribe(() => { });
+## 6. Transient Service with Parameters
+
+Dynamic service instances with constructor injection.
+
+**React:**
+```jsx
+
+    const service = await DotnetBridge.getService('ArticleInfo', {
+      constructorParameters: [articleId]
+    });
+   
+```
+
+**C# Registration:**
+```csharp
+
+public class ArticleInfoService
+{
+    public ArticleInfoService(int articleId)
+    {
+       ...
     }
-</script>
+}
+```
+
+---
+
+## 7. Property Getters/Setters (Auto-generated)
+
+Automatic getter and setter methods for properties.
+
+**React:**
+```jsx
+const count = await service.GetCount();
+
+await service.SetCount(42);
+```
+
+**C# Service:**
+```csharp
+public class CounterService : ObservableObject
+{
+    [ObservableProperty] private int count;
+}
+```
+
+---
+
+## 8. Events
+
+Subscribe to C# events from React.
+
+**React:**
+```jsx
+useEffect(() => {
+
+  const listenerId = service.OnTimerCompleted.subscribe((result) => {
+    console.log('Timer finished!', result);
+  });
+  
+}, []);
+```
+
+**C# Service:**
+```csharp
+public class TimerService
+{
+    public event EventHandler<string> OnTimerCompleted;
+}
+```
+
+---
+
+## Summary Table
+
+| Feature | React Hook/Method | C# Pattern |
+|---------|------------------|------------|
+| **Property Sync** | `useObservableProperty(service, 'Name')` | `ObservableProperty` with `SetProperty()` |
+| **Collection Sync** | `useObservableCollection(service, 'Items')` | `ObservableCollection<T>` |
+| **Method Call** | `await service.MethodName()` | Public method in service |
+| **Singleton** | `DotnetBridge.getService('Name')` | `services.AddSingleton<T>()` |
+| **Transient** | `getService('Name', { constructorParameters: [] })` | `services.AddTransient<T>()` |
+| **Event** | `service.OnEventName.subscribe(callback)` | C# `event EventHandler<T>` |
+| **Nested Objects** | `property.subProperty` | Observable object properties |
+| **Auto Getter** | `await service.GetPropertyName()` | Property with getter |
+| **Auto Setter** | `await service.SetPropertyName(value)` | Property with setter |
+
+---
+
+## Core Principle
+
+**Changes in C# automatically trigger React re-renders. No manual event handling or polling required.**
+
 ```
