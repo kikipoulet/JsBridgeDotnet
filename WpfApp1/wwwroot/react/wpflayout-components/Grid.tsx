@@ -3,21 +3,31 @@ import { GridProps, GridChildProps } from './types';
 
 const mapHorizontalAlignment = (alignment: GridChildProps['horizontalAlignment']): string => {
   switch (alignment) {
-    case 'left': return 'start';
-    case 'center': return 'center';
-    case 'right': return 'end';
-    case 'stretch': return 'stretch';
-    default: return 'stretch';
+    case 'left':
+      return 'start';
+    case 'center':
+      return 'center';
+    case 'right':
+      return 'end';
+    case 'stretch':
+      return 'stretch';
+    default:
+      return 'stretch';
   }
 };
 
 const mapVerticalAlignment = (alignment: GridChildProps['verticalAlignment']): string => {
   switch (alignment) {
-    case 'top': return 'start';
-    case 'center': return 'center';
-    case 'bottom': return 'end';
-    case 'stretch': return 'stretch';
-    default: return 'stretch';
+    case 'top':
+      return 'start';
+    case 'center':
+      return 'center';
+    case 'bottom':
+      return 'end';
+    case 'stretch':
+      return 'stretch';
+    default:
+      return 'stretch';
   }
 };
 
@@ -27,7 +37,8 @@ export const Grid: React.FC<GridProps> = ({
   gap = 8,
   autoFlow = 'row',
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const gridStyle: React.CSSProperties = {
     display: 'grid',
@@ -74,7 +85,7 @@ export const Grid: React.FC<GridProps> = ({
     return React.cloneElement(child, { style: childStyle } as GridChildProps);
   });
 
-  return <div style={gridStyle} role="grid">{processedChildren}</div>;
+  return <div style={gridStyle} role="grid" {...restProps}>{processedChildren}</div>;
 };
 
 export default Grid;

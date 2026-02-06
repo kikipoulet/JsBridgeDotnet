@@ -1,5 +1,5 @@
 import React from 'react';
-import { e as StackPanelProps } from './types-D6SZ4x4x.js';
+import { i as StackPanelProps } from './types-BvOobW14.js';
 
 declare const StackPanel: React.FC<StackPanelProps>;
 

@@ -25,7 +25,7 @@ __export(Root_exports, {
 });
 module.exports = __toCommonJS(Root_exports);
 var import_jsx_runtime = require("react/jsx-runtime");
-var Root = ({ children, fullScreen = true, style }) => {
+var Root = ({ children, fullScreen = true, style, ...restProps }) => {
   const rootStyle = {
     position: "relative",
     width: fullScreen ? "100%" : "100%",
@@ -36,7 +36,7 @@ var Root = ({ children, fullScreen = true, style }) => {
     boxSizing: "border-box",
     ...style
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: rootStyle, role: "main", children });
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: rootStyle, role: "main", ...restProps, children });
 };
 var Root_default = Root;
 // Annotate the CommonJS export names for ESM import in node:

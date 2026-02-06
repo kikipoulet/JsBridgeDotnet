@@ -1,6 +1,6 @@
 // Root.tsx
 import { jsx } from "react/jsx-runtime";
-var Root = ({ children, fullScreen = true, style }) => {
+var Root = ({ children, fullScreen = true, style, ...restProps }) => {
   const rootStyle = {
     position: "relative",
     width: fullScreen ? "100%" : "100%",
@@ -11,7 +11,7 @@ var Root = ({ children, fullScreen = true, style }) => {
     boxSizing: "border-box",
     ...style
   };
-  return /* @__PURE__ */ jsx("div", { style: rootStyle, role: "main", children });
+  return /* @__PURE__ */ jsx("div", { style: rootStyle, role: "main", ...restProps, children });
 };
 var Root_default = Root;
 export {

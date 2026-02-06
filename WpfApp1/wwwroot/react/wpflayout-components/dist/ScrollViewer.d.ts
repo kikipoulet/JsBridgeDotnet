@@ -1,5 +1,5 @@
 import React from 'react';
-import { d as ScrollViewerProps } from './types-D6SZ4x4x.js';
+import { h as ScrollViewerProps } from './types-BvOobW14.js';
 
 declare const ScrollViewer: React.FC<ScrollViewerProps>;
 

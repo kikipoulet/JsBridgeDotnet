@@ -39,7 +39,8 @@ var import_jsx_runtime = require("react/jsx-runtime");
 var DockPanel = ({
   lastChildFill = true,
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const dockStyle = {
     display: "flex",
@@ -95,7 +96,7 @@ var DockPanel = ({
     flexDirection: "column",
     minWidth: 0
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: dockStyle, role: "region", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: dockStyle, role: "region", ...restProps, children: [
     topElements,
     /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: middleRowStyle, children: [
       leftElements,

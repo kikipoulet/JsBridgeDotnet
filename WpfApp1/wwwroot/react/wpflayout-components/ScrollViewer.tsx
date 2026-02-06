@@ -15,7 +15,8 @@ export const ScrollViewer: React.FC<ScrollViewerProps> = ({
   verticalScrollBarVisibility = 'auto',
   horizontalScrollBarVisibility = 'disabled',
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const scrollViewerStyle: React.CSSProperties = {
     overflowX: mapVisibilityToOverflow(horizontalScrollBarVisibility) as any,
@@ -32,7 +33,7 @@ export const ScrollViewer: React.FC<ScrollViewerProps> = ({
   };
 
   return (
-    <div style={scrollViewerStyle} className="scrollviewer" role="region" aria-label="Scrollable content">
+    <div style={scrollViewerStyle} className="scrollviewer" role="region" aria-label="Scrollable content" {...restProps}>
       <div style={contentStyle}>{children}</div>
       <style>{`
         .scrollviewer::-webkit-scrollbar {

@@ -3,10 +3,25 @@ export { StackPanel } from './StackPanel';
 export { Grid } from './Grid';
 export { DockPanel } from './DockPanel';
 export { ScrollViewer } from './ScrollViewer';
+
 export type {
+  // Common Types
   Orientation,
-  Alignment,
   Dock,
+  ScrollBarVisibility,
+  
+  // Alignment Types
+  WpfAlignment,
+  CssAlignment,
+  Alignment,
+  
+  // Grid Types
+  GridDefinition,
+  
+  // Base Interfaces
+  FrameworkElementProps,
+  
+  // Component Props
   RootProps,
   StackPanelProps,
   GridProps,
@@ -14,5 +29,15 @@ export type {
   DockPanelProps,
   DockChildProps,
   ScrollViewerProps,
-  ScrollBarVisibility
+  
+  // Type Utilities
+  DockableElement,
+  GridChildElement,
+  FrameworkElement
+} from './types';
+
+export {
+  isDockableElement,
+  isGridChildElement,
+  isFrameworkElement
 } from './types';

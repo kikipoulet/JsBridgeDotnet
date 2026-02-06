@@ -1,7 +1,7 @@
 import React from 'react';
 import { RootProps } from './types';
 
-export const Root: React.FC<RootProps> = ({ children, fullScreen = true, style }) => {
+export const Root: React.FC<RootProps> = ({ children, fullScreen = true, style, ...restProps }) => {
   const rootStyle: React.CSSProperties = {
     position: 'relative',
     width: fullScreen ? '100%' : '100%',
@@ -13,7 +13,7 @@ export const Root: React.FC<RootProps> = ({ children, fullScreen = true, style }
     ...style
   };
 
-  return <div style={rootStyle} role="main">{children}</div>;
+  return <div style={rootStyle} role="main" {...restProps}>{children}</div>;
 };
 
 export default Root;

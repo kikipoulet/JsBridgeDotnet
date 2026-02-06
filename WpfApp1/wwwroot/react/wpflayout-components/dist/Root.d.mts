@@ -1,5 +1,5 @@
 import React from 'react';
-import { R as RootProps } from './types-D6SZ4x4x.mjs';
+import { R as RootProps } from './types-BvOobW14.mjs';
 
 declare const Root: React.FC<RootProps>;
 

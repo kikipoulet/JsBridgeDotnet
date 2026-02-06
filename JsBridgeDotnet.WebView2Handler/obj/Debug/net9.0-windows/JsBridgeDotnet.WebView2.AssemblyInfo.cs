@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("JsBridgeDotnet.WebView2")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+abbb680217cf97edd41b30bb7204a2b5a06fa175")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b08bd2762951f5dcbb0de91f9de79bd25774a6a7")]
 [assembly: System.Reflection.AssemblyProductAttribute("JsBridgeDotnet.WebView2")]
 [assembly: System.Reflection.AssemblyTitleAttribute("JsBridgeDotnet.WebView2")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

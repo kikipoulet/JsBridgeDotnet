@@ -3,10 +3,14 @@ import { jsx } from "react/jsx-runtime";
 var mapAlignmentToFlex = (alignment) => {
   switch (alignment) {
     case "start":
+    case "left":
+    case "top":
       return "flex-start";
     case "center":
       return "center";
     case "end":
+    case "right":
+    case "bottom":
       return "flex-end";
     case "stretch":
       return "stretch";
@@ -18,9 +22,11 @@ var StackPanel = ({
   orientation = "vertical",
   spacing = 8,
   horizontalAlignment = "stretch",
-  verticalAlignment = "start",
+  verticalAlignment = "stretch",
+  margin,
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const isHorizontal = orientation === "horizontal";
   const stackStyle = {
@@ -31,9 +37,10 @@ var StackPanel = ({
     alignItems: isHorizontal ? mapAlignmentToFlex(horizontalAlignment) : mapAlignmentToFlex(verticalAlignment),
     width: horizontalAlignment === "stretch" ? "100%" : "auto",
     height: verticalAlignment === "stretch" ? "100%" : "auto",
+    margin: typeof margin === "number" ? `${margin}px` : margin,
     ...style
   };
-  return /* @__PURE__ */ jsx("div", { style: stackStyle, role: "region", children });
+  return /* @__PURE__ */ jsx("div", { style: stackStyle, role: "region", ...restProps, children });
 };
 var StackPanel_default = StackPanel;
 export {

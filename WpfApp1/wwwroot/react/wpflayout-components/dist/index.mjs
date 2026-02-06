@@ -1,6 +1,6 @@
 // Root.tsx
 import { jsx } from "react/jsx-runtime";
-var Root = ({ children, fullScreen = true, style }) => {
+var Root = ({ children, fullScreen = true, style, ...restProps }) => {
   const rootStyle = {
     position: "relative",
     width: fullScreen ? "100%" : "100%",
@@ -11,7 +11,7 @@ var Root = ({ children, fullScreen = true, style }) => {
     boxSizing: "border-box",
     ...style
   };
-  return /* @__PURE__ */ jsx("div", { style: rootStyle, role: "main", children });
+  return /* @__PURE__ */ jsx("div", { style: rootStyle, role: "main", ...restProps, children });
 };
 
 // StackPanel.tsx
@@ -19,10 +19,14 @@ import { jsx as jsx2 } from "react/jsx-runtime";
 var mapAlignmentToFlex = (alignment) => {
   switch (alignment) {
     case "start":
+    case "left":
+    case "top":
       return "flex-start";
     case "center":
       return "center";
     case "end":
+    case "right":
+    case "bottom":
       return "flex-end";
     case "stretch":
       return "stretch";
@@ -34,9 +38,11 @@ var StackPanel = ({
   orientation = "vertical",
   spacing = 8,
   horizontalAlignment = "stretch",
-  verticalAlignment = "start",
+  verticalAlignment = "stretch",
+  margin,
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const isHorizontal = orientation === "horizontal";
   const stackStyle = {
@@ -47,9 +53,10 @@ var StackPanel = ({
     alignItems: isHorizontal ? mapAlignmentToFlex(horizontalAlignment) : mapAlignmentToFlex(verticalAlignment),
     width: horizontalAlignment === "stretch" ? "100%" : "auto",
     height: verticalAlignment === "stretch" ? "100%" : "auto",
+    margin: typeof margin === "number" ? `${margin}px` : margin,
     ...style
   };
-  return /* @__PURE__ */ jsx2("div", { style: stackStyle, role: "region", children });
+  return /* @__PURE__ */ jsx2("div", { style: stackStyle, role: "region", ...restProps, children });
 };
 
 // Grid.tsx
@@ -89,7 +96,8 @@ var Grid = ({
   gap = 8,
   autoFlow = "row",
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const gridStyle = {
     display: "grid",
@@ -121,7 +129,7 @@ var Grid = ({
     }
     return React.cloneElement(child, { style: childStyle });
   });
-  return /* @__PURE__ */ jsx3("div", { style: gridStyle, role: "grid", children: processedChildren });
+  return /* @__PURE__ */ jsx3("div", { style: gridStyle, role: "grid", ...restProps, children: processedChildren });
 };
 
 // DockPanel.tsx
@@ -130,7 +138,8 @@ import { jsxs } from "react/jsx-runtime";
 var DockPanel = ({
   lastChildFill = true,
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const dockStyle = {
     display: "flex",
@@ -186,7 +195,7 @@ var DockPanel = ({
     flexDirection: "column",
     minWidth: 0
   };
-  return /* @__PURE__ */ jsxs("div", { style: dockStyle, role: "region", children: [
+  return /* @__PURE__ */ jsxs("div", { style: dockStyle, role: "region", ...restProps, children: [
     topElements,
     /* @__PURE__ */ jsxs("div", { style: middleRowStyle, children: [
       leftElements,
@@ -219,7 +228,8 @@ var ScrollViewer = ({
   verticalScrollBarVisibility = "auto",
   horizontalScrollBarVisibility = "disabled",
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const scrollViewerStyle = {
     overflowX: mapVisibilityToOverflow(horizontalScrollBarVisibility),
@@ -233,7 +243,7 @@ var ScrollViewer = ({
     minWidth: "fit-content",
     minHeight: "fit-content"
   };
-  return /* @__PURE__ */ jsxs2("div", { style: scrollViewerStyle, className: "scrollviewer", role: "region", "aria-label": "Scrollable content", children: [
+  return /* @__PURE__ */ jsxs2("div", { style: scrollViewerStyle, className: "scrollviewer", role: "region", "aria-label": "Scrollable content", ...restProps, children: [
     /* @__PURE__ */ jsx4("div", { style: contentStyle, children }),
     /* @__PURE__ */ jsx4("style", { children: `
         .scrollviewer::-webkit-scrollbar {
@@ -258,11 +268,32 @@ var ScrollViewer = ({
       ` })
   ] });
 };
+
+// types.ts
+import React3 from "react";
+function isDockableElement(element) {
+  if (!React3.isValidElement(element)) return false;
+  const props = element.props;
+  return typeof props === "object" && props !== null && "dock" in props;
+}
+function isGridChildElement(element) {
+  if (!React3.isValidElement(element)) return false;
+  const props = element.props;
+  return typeof props === "object" && props !== null && ("row" in props || "column" in props || "rowSpan" in props || "columnSpan" in props);
+}
+function isFrameworkElement(element) {
+  if (!React3.isValidElement(element)) return false;
+  const props = element.props;
+  return typeof props === "object" && props !== null && ("horizontalAlignment" in props || "verticalAlignment" in props || "margin" in props);
+}
 export {
   DockPanel,
   Grid,
   Root,
   ScrollViewer,
-  StackPanel
+  StackPanel,
+  isDockableElement,
+  isFrameworkElement,
+  isGridChildElement
 };
 //# sourceMappingURL=index.mjs.map

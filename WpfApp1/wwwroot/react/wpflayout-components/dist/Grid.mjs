@@ -35,7 +35,8 @@ var Grid = ({
   gap = 8,
   autoFlow = "row",
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const gridStyle = {
     display: "grid",
@@ -67,7 +68,7 @@ var Grid = ({
     }
     return React.cloneElement(child, { style: childStyle });
   });
-  return /* @__PURE__ */ jsx("div", { style: gridStyle, role: "grid", children: processedChildren });
+  return /* @__PURE__ */ jsx("div", { style: gridStyle, role: "grid", ...restProps, children: processedChildren });
 };
 var Grid_default = Grid;
 export {

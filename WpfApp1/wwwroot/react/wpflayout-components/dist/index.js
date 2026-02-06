@@ -34,13 +34,16 @@ __export(index_exports, {
   Grid: () => Grid,
   Root: () => Root,
   ScrollViewer: () => ScrollViewer,
-  StackPanel: () => StackPanel
+  StackPanel: () => StackPanel,
+  isDockableElement: () => isDockableElement,
+  isFrameworkElement: () => isFrameworkElement,
+  isGridChildElement: () => isGridChildElement
 });
 module.exports = __toCommonJS(index_exports);
 
 // Root.tsx
 var import_jsx_runtime = require("react/jsx-runtime");
-var Root = ({ children, fullScreen = true, style }) => {
+var Root = ({ children, fullScreen = true, style, ...restProps }) => {
   const rootStyle = {
     position: "relative",
     width: fullScreen ? "100%" : "100%",
@@ -51,7 +54,7 @@ var Root = ({ children, fullScreen = true, style }) => {
     boxSizing: "border-box",
     ...style
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: rootStyle, role: "main", children });
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: rootStyle, role: "main", ...restProps, children });
 };
 
 // StackPanel.tsx
@@ -59,10 +62,14 @@ var import_jsx_runtime2 = require("react/jsx-runtime");
 var mapAlignmentToFlex = (alignment) => {
   switch (alignment) {
     case "start":
+    case "left":
+    case "top":
       return "flex-start";
     case "center":
       return "center";
     case "end":
+    case "right":
+    case "bottom":
       return "flex-end";
     case "stretch":
       return "stretch";
@@ -74,9 +81,11 @@ var StackPanel = ({
   orientation = "vertical",
   spacing = 8,
   horizontalAlignment = "stretch",
-  verticalAlignment = "start",
+  verticalAlignment = "stretch",
+  margin,
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const isHorizontal = orientation === "horizontal";
   const stackStyle = {
@@ -87,9 +96,10 @@ var StackPanel = ({
     alignItems: isHorizontal ? mapAlignmentToFlex(horizontalAlignment) : mapAlignmentToFlex(verticalAlignment),
     width: horizontalAlignment === "stretch" ? "100%" : "auto",
     height: verticalAlignment === "stretch" ? "100%" : "auto",
+    margin: typeof margin === "number" ? `${margin}px` : margin,
     ...style
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: stackStyle, role: "region", children });
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: stackStyle, role: "region", ...restProps, children });
 };
 
 // Grid.tsx
@@ -129,7 +139,8 @@ var Grid = ({
   gap = 8,
   autoFlow = "row",
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const gridStyle = {
     display: "grid",
@@ -161,7 +172,7 @@ var Grid = ({
     }
     return import_react.default.cloneElement(child, { style: childStyle });
   });
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: gridStyle, role: "grid", children: processedChildren });
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: gridStyle, role: "grid", ...restProps, children: processedChildren });
 };
 
 // DockPanel.tsx
@@ -170,7 +181,8 @@ var import_jsx_runtime4 = require("react/jsx-runtime");
 var DockPanel = ({
   lastChildFill = true,
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const dockStyle = {
     display: "flex",
@@ -226,7 +238,7 @@ var DockPanel = ({
     flexDirection: "column",
     minWidth: 0
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: dockStyle, role: "region", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: dockStyle, role: "region", ...restProps, children: [
     topElements,
     /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: middleRowStyle, children: [
       leftElements,
@@ -259,7 +271,8 @@ var ScrollViewer = ({
   verticalScrollBarVisibility = "auto",
   horizontalScrollBarVisibility = "disabled",
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const scrollViewerStyle = {
     overflowX: mapVisibilityToOverflow(horizontalScrollBarVisibility),
@@ -273,7 +286,7 @@ var ScrollViewer = ({
     minWidth: "fit-content",
     minHeight: "fit-content"
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: scrollViewerStyle, className: "scrollviewer", role: "region", "aria-label": "Scrollable content", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: scrollViewerStyle, className: "scrollviewer", role: "region", "aria-label": "Scrollable content", ...restProps, children: [
     /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: contentStyle, children }),
     /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("style", { children: `
         .scrollviewer::-webkit-scrollbar {
@@ -298,12 +311,33 @@ var ScrollViewer = ({
       ` })
   ] });
 };
+
+// types.ts
+var import_react3 = __toESM(require("react"));
+function isDockableElement(element) {
+  if (!import_react3.default.isValidElement(element)) return false;
+  const props = element.props;
+  return typeof props === "object" && props !== null && "dock" in props;
+}
+function isGridChildElement(element) {
+  if (!import_react3.default.isValidElement(element)) return false;
+  const props = element.props;
+  return typeof props === "object" && props !== null && ("row" in props || "column" in props || "rowSpan" in props || "columnSpan" in props);
+}
+function isFrameworkElement(element) {
+  if (!import_react3.default.isValidElement(element)) return false;
+  const props = element.props;
+  return typeof props === "object" && props !== null && ("horizontalAlignment" in props || "verticalAlignment" in props || "margin" in props);
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   DockPanel,
   Grid,
   Root,
   ScrollViewer,
-  StackPanel
+  StackPanel,
+  isDockableElement,
+  isFrameworkElement,
+  isGridChildElement
 });
 //# sourceMappingURL=index.js.map

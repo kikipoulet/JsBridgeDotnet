@@ -4,7 +4,8 @@ import { DockPanelProps, DockChildProps, Dock } from './types';
 export const DockPanel: React.FC<DockPanelProps> = ({
   lastChildFill = true,
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const dockStyle: React.CSSProperties = {
     display: 'flex',
@@ -71,7 +72,7 @@ export const DockPanel: React.FC<DockPanelProps> = ({
   };
 
   return (
-    <div style={dockStyle} role="region">
+    <div style={dockStyle} role="region" {...restProps}>
       {topElements}
       <div style={middleRowStyle}>
         {leftElements}

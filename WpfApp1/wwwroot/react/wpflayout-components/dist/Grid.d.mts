@@ -1,5 +1,5 @@
 import React from 'react';
-import { c as GridProps } from './types-D6SZ4x4x.mjs';
+import { g as GridProps } from './types-BvOobW14.mjs';
 
 declare const Grid: React.FC<GridProps>;
 

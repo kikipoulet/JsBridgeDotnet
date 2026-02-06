@@ -70,7 +70,8 @@ var Grid = ({
   gap = 8,
   autoFlow = "row",
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const gridStyle = {
     display: "grid",
@@ -102,7 +103,7 @@ var Grid = ({
     }
     return import_react.default.cloneElement(child, { style: childStyle });
   });
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: gridStyle, role: "grid", children: processedChildren });
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: gridStyle, role: "grid", ...restProps, children: processedChildren });
 };
 var Grid_default = Grid;
 // Annotate the CommonJS export names for ESM import in node:

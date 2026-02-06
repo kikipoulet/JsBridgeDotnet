@@ -42,7 +42,8 @@ var ScrollViewer = ({
   verticalScrollBarVisibility = "auto",
   horizontalScrollBarVisibility = "disabled",
   children,
-  style
+  style,
+  ...restProps
 }) => {
   const scrollViewerStyle = {
     overflowX: mapVisibilityToOverflow(horizontalScrollBarVisibility),
@@ -56,7 +57,7 @@ var ScrollViewer = ({
     minWidth: "fit-content",
     minHeight: "fit-content"
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: scrollViewerStyle, className: "scrollviewer", role: "region", "aria-label": "Scrollable content", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: scrollViewerStyle, className: "scrollviewer", role: "region", "aria-label": "Scrollable content", ...restProps, children: [
     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: contentStyle, children }),
     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("style", { children: `
         .scrollviewer::-webkit-scrollbar {
