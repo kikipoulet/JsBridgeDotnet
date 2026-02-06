@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 function Timer() {
   const [timerService, setTimerService] = useState(null);
   const [running, setRunning] = useObservableProperty(timerService, 'IsRunning');
+  const [inp, setInp] = useObservableProperty(timerService, 'Input');
 
   useEffect(() => {
     const initService = async () => {
@@ -26,6 +27,7 @@ function Timer() {
 
   return (
     <div className="flex justify-center items-center h-full p-8">
+      <input value={inp} onChange={(e) => setInp(e.target.value)} />
       <motion.div initial={{opacity: 0, y: 80, scale: 0.9 }} animate={{opacity: 1, y: 0, scale: 1}} transition={{duration: 0.7, type: 'spring', stiffness: 150, damping: 16}} className="w-full max-w-md text-center">
           <div className="relative mb-12">
             <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{scale: 1, opacity: 1, boxShadow: running ? '0 0 60px rgba(99, 102, 241, 0.3)' : '0 0 40px rgba(0, 0, 0, 0.05)'}}

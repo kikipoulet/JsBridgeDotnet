@@ -9,6 +9,8 @@ namespace WpfApp1.Services;
 public partial class TimerService : ObservableObject
 {
     [ObservableProperty] private bool isRunning = false;
+    [ObservableProperty] private string input = "test";
+    
     
     private Timer? _timer;
     private int _secondsRemaining;

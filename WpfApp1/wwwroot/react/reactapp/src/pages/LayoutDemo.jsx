@@ -1,5 +1,5 @@
 import React from 'react';
-import {Root, DockPanel, Grid, StackPanel, ScrollViewer} from '../../layoutcomponents';
+import {Root, DockPanel, Grid, StackPanel, ScrollViewer} from '@kikipoulet/react-dotnetxaml-layouts';
 
 function LayoutDemo() {
   return (
@@ -37,7 +37,8 @@ function LayoutDemo() {
               </div>
               <div style={{ background: '#e1bee7' }}>
                   <Grid>
-                      <StackPanel orientation="horizontal" spacing={12} horizontalAlignment="right" verticalAlignment="bottom">
+                      
+                      <StackPanel  orientation="horizontal" spacing={12} horizontalAlignment="right" verticalAlignment="bottom">
                           <button>Annuler</button>
                           <button >Valider</button>
                       </StackPanel>

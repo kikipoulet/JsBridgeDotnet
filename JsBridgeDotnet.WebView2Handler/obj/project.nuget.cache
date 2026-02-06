@@ -1,9 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "k7uC4L3/+4E=",
+  "dgSpecHash": "CYHVD9kOEk8=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Sepul\\RiderProjects\\WpfApp1\\JsBridgeDotnet.WebView2Handler\\JsBridgeDotnet.WebView2.csproj",
+  "projectFilePath": "C:\\Users\\Sepul\\RiderProjects\\JsBridgeDotnet\\JsBridgeDotnet.WebView2Handler\\JsBridgeDotnet.WebView2.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\Sepul\\.nuget\\packages\\microsoft.extensions.dependencyinjection\\9.0.0\\microsoft.extensions.dependencyinjection.9.0.0.nupkg.sha512",
+    "C:\\Users\\Sepul\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\9.0.0\\microsoft.extensions.dependencyinjection.abstractions.9.0.0.nupkg.sha512",
     "C:\\Users\\Sepul\\.nuget\\packages\\microsoft.web.webview2\\1.0.3712-prerelease\\microsoft.web.webview2.1.0.3712-prerelease.nupkg.sha512",
     "C:\\Users\\Sepul\\.nuget\\packages\\system.text.encodings.web\\8.0.0\\system.text.encodings.web.8.0.0.nupkg.sha512",
     "C:\\Users\\Sepul\\.nuget\\packages\\system.text.json\\8.0.0\\system.text.json.8.0.0.nupkg.sha512"

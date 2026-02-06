@@ -1,0 +1,46 @@
+{
+  "name": "@kikipoulet/react-dotnetxaml-layouts",
+  "version": "1.0.0",
+  "description": "React layout components inspired by WPF XAML - StackPanel, Grid, DockPanel, ScrollViewer",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "peerDependencies": {
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "react",
+    "layout",
+    "wpf",
+    "xaml",
+    "stackpanel",
+    "grid",
+    "dockpanel",
+    "scrollviewer"
+  ],
+  "author": "kikipoulet",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kikipoulet/JsBridgeDotnet.git"
+  }
+}
