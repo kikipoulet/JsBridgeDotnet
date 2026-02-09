@@ -1,104 +1,225 @@
-The goal of this mini framework is to use a js front-end with a MVVM approach. 
-C# ViewModel is a classic unaltered ViewModel, and can be registered as singleton or transient.
-Then, the js can get the service and get the properties and call methods directly.
-The end goal could be to produce a deeper integration with js framework, an ObservableProperty could be bind directly to a svelte store, .. 
+# Getting Started
 
-Simple C# ViewModel :
+
+Bridge your WPF application with React seamlessly. This guide walks you through building a simple Timer application that demonstrates the two-way communication between .NET and JavaScript.
+
+## What You'll Build
+
+A WPF app with an embedded React UI that can control a .NET service. The React frontend will be able to start a timer running in the .NET backend and receive real-time status updates.
+
+---
+
+## Prerequisites
+
+- Visual Studio with WPF workload
+- Node.js and npm
+- .NET 6 or later
+
+---
+
+## Part 1: Setting Up the WPF Application
+
+### 1. Create a New WPF App
+
+Create a new WPF Application project in Visual Studio.
+
+### 2. Install Required NuGet Packages
+
+```bash
+Install-Package JsBridgeDotnet.WPF
+Install-Package CommunityToolkit.Mvvm
+```
+
+### 3. Add the WebView to Your Main Window
+
+Open `MainWindow.xaml` and add the JsBridgeWebView control:
+
+```xml
+<Window x:Class="YourApp.MainWindow"
+        xmlns:jsbridge="clr-namespace:JsBridgeDotnet;assembly=JsBridgeDotnet">
+    
+    <jsbridge:JsBridgeWebView x:Name="jsBridgeWebView" />
+    
+</Window>
+```
+
+### 4. Create a Sample Service
+
+Create a `TimerService.cs` file with the following code:
 
 ```csharp
+using CommunityToolkit.Mvvm.ComponentModel;
+using JsBridgeDotnet;
+
+[JsService("Timer")]
 public partial class TimerService : ObservableObject
 {
-    [ObservableProperty] private bool isRunning = false;
-
+    [ObservableProperty] 
+    private bool isRunning = false;
+    
     public void Start()
     {
-        // Change isrunning, wait 5 seconds and rechange isrunning + call stopped event
-    }
+        IsRunning = true;
 
-    public event EventHandler? TimerStopped;
+        Task.Delay(4000).ContinueWith(t => IsRunning = false);
+    }
 }
 ```
 
-Used by Svelte Component : 
+> **Note:** The `[JsService("Timer")]` attribute exposes this class to JavaScript with the name "Timer". The `[ObservableProperty]` attribute from MVVM Toolkit automatically creates the `IsRunning` property with change notification.
 
-```javascript
-<script>
-  let timerService = null;
-  let isRunning = null;
+### 5. Configure the WebView
 
-  onMount(async () => {
-      timerService = await DotnetBridge.getService('Timer');
-      
-      isRunning = OPtoStore(timerService, 'IsRunning');
-       
-      timerService.OnTimerStopped.subscribe(() => console.log('Timer stopped!'));
-  });
-</script>
-
-<p>Timer : {$isRunning ? 'Running...' : 'Stopped'}</p>
-
-<button on:click={() => timerService.Start()} disabled={$isRunning}>
-      {$isRunning ? '⏳ Wait ..' : '🚀 Start Timer (3 secondes)'}
-</button>
-
-```
-
-----------------------------------------------------------------
+In `MainWindow.xaml.cs`, set up the service provider and initialize the bridge:
 
 ```csharp
-public partial class TodoListService : ObservableObject
+public partial class MainWindow : Window
 {
-    public ObservableCollection<TodoItem> Todos { get; set; } = new ObservableCollection<TodoItem>();
+    public static IServiceProvider ServiceProvider;
 
-    public void Add(string text) => ...
-    
-    public void Remove(string id) => ...
+    public MainWindow()
+    {
+        InitializeComponent();
+        Loaded += async (s, e) => await InitializeAsync();
+    }
+
+    private async Task InitializeAsync()
+    {
+        try
+        {
+            // Configure the local React app location
+            await jsBridgeWebView.ConfigureLocalPage("ReactApp", "dist");
+
+            // Register your services
+            var services = new ServiceCollection();
+            services.AddSingleton<TimerService>();
+            ServiceProvider = services.BuildServiceProvider();
+
+            // Initialize the bridge
+            await jsBridgeWebView.InitializeAsync(services, ServiceProvider);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Initialization error: {ex.Message}", 
+                "Error", 
+                MessageBoxButton.OK, 
+                MessageBoxImage.Error);
+        }
+    }
 }
-
 ```
 
-Used by React Component :
+---
 
-```javascript
-function TodoList() {
-    
-    const [todoService, setTodoService] = useState(null);
-    const [newTodo, setNewTodo] = useState('');
-    const todos = useObservableCollection(todoService, 'Todos');
-    const addTodo = async () => await todoService.Add(newTodo);
-    const removeTodo = async (id) => await todoService.Remove(id);
-    
-    useEffect(async () => {
-        const service = await window.DotnetBridge.getService('TodoList');
-        setTodoService(service);
+## Part 2: Creating the React Frontend
+
+### 6. Initialize the React Application
+
+From your WPF project directory, create a new React app:
+
+```bash
+npm create vite@latest ReactApp -- --template react
+```
+
+When prompted, select **React** and **JavaScript**.
+
+### 7. Install the React Bridge Package
+
+```bash
+cd ReactApp
+npm install @kikipoulet/react-dotnetbridge
+```
+
+### 8. Create the React Component
+
+Replace the contents of `src/App.jsx` with:
+
+```jsx
+import { useState, useEffect } from 'react';
+import { DotnetBridge, useObservableProperty } from '@kikipoulet/react-dotnetbridge';
+
+function App() {
+    const [timerService, setTimerService] = useState(null);
+    const [running, setRunning] = useObservableProperty(timerService, 'IsRunning');
+
+    useEffect(() => {
+        const initService = async () => {
+            const service = await DotnetBridge.getService('Timer');
+            setTimerService(service);
+        };
+        initService();
     }, []);
-    
-    return (
-        <div>
-            <div >
-                <input type="text" value={newTodo} />
-                <button onClick={addTodo}>
-                    Add
-                </button>
-            </div>
 
-            <ul>
-                {todos.map((todo) => (
-                    <li key={todo.id}>
-                        <span>{todo.text}</span>
-                        <button onClick={() => removeTodo(todo.id)}>
-                            Delete Item
-                        </button>
-                    </li>
-                ))}
-            </ul>
+    return (
+        <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+
+            <h2 style={{ color: running ? '#4CAF50' : '#666' }}>
+                {running ? '⏱️ Timer Running' : '⏹️ Timer Ready'}
+            </h2>
+            
+            <button  onClick={() => timerService?.Start()} disabled={running} >
+                Start Timer
+            </button>
         </div>
     );
 }
 
+export default App;
 ```
 
-# react
+> **How it works:**
+> - `DotnetBridge.getService('Timer')` retrieves the .NET service we registered
+> - `useObservableProperty` automatically subscribes to property changes and keeps the UI in sync
+
+### 9. Build the React Application
+
+```bash
+npm run build
+```
+
+This creates a `dist` folder with your compiled React app.
+
+---
+
+## Part 3: Wiring Everything Together
+
+### 10. Verify the Path Configuration
+
+Ensure the path in your `MainWindow.xaml.cs` matches your React build output:
+
+```csharp
+await jsBridgeWebView.ConfigureLocalPage("ReactApp", "dist");
+```
+
+The first argument is the folder name relative to your project root. The second is the subfolder containing the built files (typically `dist` for Vite).
+
+### 11. Include React Files in Your Build
+
+Add this to your `.csproj` file to ensure the React app is copied to the output directory:
+
+```xml
+<ItemGroup>
+    <Content Include="ReactApp\**">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+</ItemGroup>
+```
+
+---
+
+## Part 4: Run Your Application
+
+### 12. Launch the WPF App
+
+You should see:
+- A React UI embedded in your WPF window
+- A button that starts a 4-second timer
+- The status text updating in real-time when the timer starts and stops
+
+
+
+# React Complete API
 
 
 
