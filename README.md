@@ -1,3 +1,65 @@
+
+# JsBridgeDotnet
+
+**An experimental bridge for React + C# MVVM desktop applications.**
+
+---
+
+## What is this?
+
+JsBridgeDotnet is a prototype exploring a specific approach: building desktop applications using **React for the UI layer** and **C#/.NET for the business logic**, connected through a simple MVVM-style bridge.
+
+The idea is straightforward: what if we could treat a React frontend like a XAML view, with full two-way data binding to .NET ViewModels? No REST APIs, no complex IPC—just direct method calls and observable properties.
+
+---
+
+## Why this approach?
+
+### The Problem
+Building modern desktop UIs with WPF/XAML can feel limiting compared to web development that have almost infinite controls and styles. Meanwhile, Electron-style apps often become bloated and lose access to native platform capabilities.
+
+### The Experiment
+This prototype explores a middle ground:
+- Keep the **React ecosystem** (components, hooks, npm packages) for UI development
+- Retain **.NET's strengths** for business logic, file system access, native APIs
+- Use **MVVM patterns** you already know from WPF development
+- Avoid the complexity of full client-server architectures for desktop apps
+
+---
+
+
+## Key Ideas Being Explored
+
+**1. Services as ViewModels**
+.NET services decorated with `[JsService]` become accessible from React.
+
+```csharp
+[JsService("Timer")]
+public partial class TimerService : ObservableObject
+{
+    [ObservableProperty] private bool isRunning;
+}
+```
+
+**2. React as a View Layer**
+Instead of fighting with XAML styling and limited component libraries, use React's ecosystem directly:
+
+```jsx
+const [running, setRunning] = useObservableProperty(timerService, 'IsRunning');
+
+ return (
+            <h2>
+                {running ? '⏱️ Timer Running' : '⏹️ Timer Ready'}   // <-- Reactive by Default !
+            </h2>
+        )
+```
+
+**3. Simple Dependency Injection**
+Register services in .NET's DI container, access them from JavaScript by name. No manual service location or complex initialization.
+
+
+
+
 # Getting Started
 
 
