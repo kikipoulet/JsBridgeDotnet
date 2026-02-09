@@ -25,6 +25,12 @@ This prototype explores a middle ground:
 - Use **MVVM patterns** you already know from WPF development
 - Avoid the complexity of full client-server architectures for desktop apps
 
+### Cross Platform
+
+The potential for cross platform is great, as it could easily extend to :
+
+- Maui.net + HybridWebView + React Native for web (Exploit the infinite controls ecosystem of React Native + React)
+- SignalR for a web app
 ---
 
 
