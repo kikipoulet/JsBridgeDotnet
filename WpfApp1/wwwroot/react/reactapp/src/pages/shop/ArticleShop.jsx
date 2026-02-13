@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import '../../lib/dotnetbridge.js';
-import { useObservableCollection } from '../../lib/dotnetbridge-react.js';
+import { DotnetBridge, useObservableCollection } from '@kikipoulet/react-dotnetbridge';
 import { Card, Button, Chip, Surface, Avatar, Alert } from '@heroui/react';
 import { BreadcrumbProvider } from '../../context/BreadcrumbContext';
 import ArticleDetails from './ArticleDetails';
@@ -16,7 +15,7 @@ function ArticleShopContent() {
 
   useEffect(() => {
     const initService = async () => {
-      const service = await window.DotnetBridge.getService('ArticleList');
+      const service = await DotnetBridge.getService('ArticleList');
       setShopService(service);
     };
 

@@ -13,6 +13,7 @@
     "@heroui/react": "^3.0.0-beta.3",
     "@heroui/styles": "^3.0.0-beta.3",
     "@iconify/react": "^6.0.2",
+    "@kikipoulet/react-dotnetbridge": "file:../react-dotnetbridge",
     "@kikipoulet/react-dotnetxaml-layouts": "file:../wpflayout-components",
     "@tailwindcss/vite": "^4.1.18",
     "framer-motion": "^12.23.26",

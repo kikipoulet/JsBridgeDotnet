@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import '../lib/dotnetbridge.js';
-import { useObservableCollection } from '../lib/dotnetbridge-react.js';
+import { DotnetBridge, useObservableCollection } from '@kikipoulet/react-dotnetbridge';
 import { Button, Input } from '@heroui/react';
 
 function TodoList() {
@@ -11,7 +10,7 @@ function TodoList() {
 
   useEffect(() => {
     const initService = async () => {
-      const service = await window.DotnetBridge.getService('TodoList');
+      const service = await DotnetBridge.getService('TodoList');
       setTodoService(service);
     };
 

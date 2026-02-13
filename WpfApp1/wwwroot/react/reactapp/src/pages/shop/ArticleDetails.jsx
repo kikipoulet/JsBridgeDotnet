@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Button, Chip, Surface, Avatar, Link, Spinner } from '@heroui/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {useObservableProperty} from "../../lib/dotnetbridge-react.js";
+import { DotnetBridge, useObservableProperty } from '@kikipoulet/react-dotnetbridge';
 
 function ArticleDetails({ articleId, articleName, onBack }) {
   const [articleInfoService, setArticleInfoService] = useState(null);
@@ -15,7 +15,7 @@ function ArticleDetails({ articleId, articleName, onBack }) {
         setLoading(true);
         setError(null);
         console.log('load service with id: ' + articleId );
-        const service = await window.DotnetBridge.getService('ArticleInfo', {
+        const service = await DotnetBridge.getService('ArticleInfo', {
           constructorParameters: [articleId]
         });
         console.log('loaded service!' );
