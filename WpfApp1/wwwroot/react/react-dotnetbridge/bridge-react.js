@@ -167,16 +167,6 @@ export function useObservableCollection(service, collectionName) {
  * timer.Events.OnTimerStopped.subscribe(callback)
  */
 
-// Store cache to hold service stores
-const serviceStores = {};
-
-function getOrCreateStore(serviceName) {
-  if (!serviceStores[serviceName]) {
-    serviceStores[serviceName] = createServiceStore(serviceName);
-  }
-  return serviceStores[serviceName];
-}
-
 function createServiceStore(serviceName) {
   let service = null;
   let loaded = false;
@@ -346,10 +336,17 @@ function createServiceStore(serviceName) {
 }
 
 export function useService(serviceName) {
-  const store = getOrCreateStore(serviceName);
+  // Create store locally per component using useRef
+  // This ensures transients get a new instance per component
+  // Singletons are still shared because DotnetBridge.getService() handles caching
+  const storeRef = React.useRef(null);
+  
+  if (!storeRef.current) {
+    storeRef.current = createServiceStore(serviceName);
+  }
   
   return React.useSyncExternalStore(
-    store.subscribe,
-    store.getSnapshot
+    storeRef.current.subscribe,
+    storeRef.current.getSnapshot
   );
 }
