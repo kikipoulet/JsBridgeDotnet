@@ -1,0 +1,48 @@
+{
+  "name": "@kikipoulet/react-dotnetbridge",
+  "version": "1.0.0",
+  "description": "Bridge communication between React apps and .NET via WebView2",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup index.js bridge.js bridge-react.js --format esm,cjs --dts --external react --external react-dom --out-dir dist",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": false
+    }
+  },
+  "keywords": [
+    "react",
+    "dotnet",
+    "webview2",
+    "bridge",
+    "interop"
+  ],
+  "author": "kikipoulet",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kikipoulet/JsBridgeDotnet.git"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.13",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}
