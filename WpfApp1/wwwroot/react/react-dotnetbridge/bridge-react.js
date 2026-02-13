@@ -226,21 +226,30 @@ function createServiceStore(serviceName) {
       propertyNames = Array.from(s._propertyValues.keys());
     }
     
-    // Initialize each property
+    console.log(`[useService] Initializing service with properties:`, propertyNames);
+    
+    // Initialize each property - detect collections by checking if initial value is an array
     propertyNames.forEach(propName => {
       // Get initial value
       const value = s._propertyValues ? s._propertyValues.get(propName) : undefined;
-      internalState.Properties[propName] = value;
       
-      // Create setter
-      internalState.Properties[`Set${propName}`] = (val) => {
-        const setterMethod = `Set${propName}`;
-        if (service && typeof service[setterMethod] === 'function') {
-          service[setterMethod](val);
-        }
-      };
+      // Determine if it's a collection (array) or regular property
+      if (Array.isArray(value)) {
+        console.log(`[useService] ${propName} detected as collection (array)`);
+        internalState.Collections[propName] = value;
+      } else {
+        internalState.Properties[propName] = value;
+        
+        // Create setter for regular properties
+        internalState.Properties[`Set${propName}`] = (val) => {
+          const setterMethod = `Set${propName}`;
+          if (service && typeof service[setterMethod] === 'function') {
+            service[setterMethod](val);
+          }
+        };
+      }
 
-      // Subscribe to property changes
+      // Subscribe to property/collection changes
       const eventName = `On${propName}Changed`;
       if (service[eventName] && typeof service[eventName].subscribe === 'function') {
         // Store event reference
@@ -249,44 +258,33 @@ function createServiceStore(serviceName) {
           unsubscribe: (id) => service[eventName].unsubscribe(id)
         };
 
-        // Subscribe and update state
+        // Subscribe and handle differently based on type
         const listenerId = service[eventName].subscribe((newValue) => {
-          console.log(`[useService] Property ${propName} changed to:`, newValue);
-          internalState.Properties[propName] = newValue;
-          notify();
-          console.log(`[useService] Notified ${subscribers.size} subscribers`);
+          // Check if this property was detected as a collection during initialization
+          const isCollectionProperty = propName in internalState.Collections;
+          
+          if (isCollectionProperty) {
+            // Collection: always fetch fresh data
+            console.log(`[useService] Collection ${propName} changed, fetching...`);
+            const getterMethod = `Get${propName}`;
+            if (service[getterMethod]) {
+              service[getterMethod]().then((data) => {
+                console.log(`[useService] Collection ${propName} fetched:`, data);
+                internalState.Collections[propName] = data;
+                notify();
+              }).catch((e) => {
+                console.error(`[useService] Error fetching collection ${propName}:`, e);
+              });
+            }
+          } else {
+            // Regular property: value passed directly
+            console.log(`[useService] Property ${propName} changed to:`, newValue);
+            internalState.Properties[propName] = newValue;
+            notify();
+          }
         });
         
         console.log(`[useService] Subscribed to ${eventName}, listenerId:`, listenerId);
-      }
-    });
-
-    // Initialize collections
-    propertyNames.forEach((propName) => {
-      const isCollection = s._observableCollections && 
-                         typeof s._observableCollections.get === 'function' ? 
-                         s._observableCollections.get(propName) : false;
-      
-      if (isCollection) {
-        const getterMethod = `Get${propName}`;
-        if (service[getterMethod]) {
-          service[getterMethod]().then((data) => {
-            internalState.Collections[propName] = data;
-            notify();
-          }).catch((e) => {
-            console.error(`Error fetching collection ${propName}:`, e);
-          });
-        }
-
-        const eventName = `On${propName}Changed`;
-        if (service[eventName]) {
-          service[eventName].subscribe(() => {
-            service[getterMethod]().then((data) => {
-              internalState.Collections[propName] = data;
-              notify();
-            });
-          });
-        }
       }
     });
 
